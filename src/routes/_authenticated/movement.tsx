@@ -19,7 +19,7 @@ import {
 import { NEGOTIATION_STATUSES, daysSince, type NegotiationStatus } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/_authenticated/dashboard/movement")({
+export const Route = createFileRoute("/_authenticated/movement")({
   component: MovementPage,
 });
 
