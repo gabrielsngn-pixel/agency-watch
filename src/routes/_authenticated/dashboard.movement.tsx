@@ -654,7 +654,7 @@ function CompositionList({ title, tone, items }: { title: string; tone: "muted" 
 
 // ----- Sankey -----
 
-function SankeyFlow({ edges }: { edges: { from: string; to: string; count: number } }[]>) {
+function SankeyFlow({ edges }: { edges: { from: string; to: string; count: number }[] }) {
   const max = Math.max(...edges.map((e) => e.count), 1);
   return (
     <div className="space-y-2">
