@@ -23,6 +23,7 @@ import { Route as AuthenticatedSettingsSlackRouteImport } from './routes/_authen
 import { Route as AuthenticatedSettingsHubspotRouteImport } from './routes/_authenticated/settings.hubspot'
 import { Route as AuthenticatedPortfolioNewRouteImport } from './routes/_authenticated/portfolio.new'
 import { Route as AuthenticatedPortfolioAgencyIdRouteImport } from './routes/_authenticated/portfolio.$agencyId'
+import { Route as AuthenticatedDashboardMovementRouteImport } from './routes/_authenticated/dashboard.movement'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp.webhook'
 import { Route as ApiPublicSlackInteractionsRouteImport } from './routes/api/public/slack.interactions'
 import { Route as ApiPublicSlackHealthRouteImport } from './routes/api/public/slack.health'
@@ -106,6 +107,12 @@ const AuthenticatedPortfolioAgencyIdRoute =
     path: '/$agencyId',
     getParentRoute: () => AuthenticatedPortfolioRoute,
   } as any)
+const AuthenticatedDashboardMovementRoute =
+  AuthenticatedDashboardMovementRouteImport.update({
+    id: '/movement',
+    path: '/movement',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 const ApiPublicWhatsappWebhookRoute =
   ApiPublicWhatsappWebhookRouteImport.update({
     id: '/api/public/whatsapp/webhook',
@@ -144,9 +151,10 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/bot': typeof AuthenticatedBotRoute
   '/consultants': typeof AuthenticatedConsultantsRoute
-  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/import': typeof AuthenticatedImportRoute
   '/portfolio': typeof AuthenticatedPortfolioRouteWithChildren
+  '/dashboard/movement': typeof AuthenticatedDashboardMovementRoute
   '/portfolio/$agencyId': typeof AuthenticatedPortfolioAgencyIdRoute
   '/portfolio/new': typeof AuthenticatedPortfolioNewRoute
   '/settings/hubspot': typeof AuthenticatedSettingsHubspotRoute
@@ -165,8 +173,9 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/bot': typeof AuthenticatedBotRoute
   '/consultants': typeof AuthenticatedConsultantsRoute
-  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/import': typeof AuthenticatedImportRoute
+  '/dashboard/movement': typeof AuthenticatedDashboardMovementRoute
   '/portfolio/$agencyId': typeof AuthenticatedPortfolioAgencyIdRoute
   '/portfolio/new': typeof AuthenticatedPortfolioNewRoute
   '/settings/hubspot': typeof AuthenticatedSettingsHubspotRoute
@@ -187,9 +196,10 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_authenticated/bot': typeof AuthenticatedBotRoute
   '/_authenticated/consultants': typeof AuthenticatedConsultantsRoute
-  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/_authenticated/import': typeof AuthenticatedImportRoute
   '/_authenticated/portfolio': typeof AuthenticatedPortfolioRouteWithChildren
+  '/_authenticated/dashboard/movement': typeof AuthenticatedDashboardMovementRoute
   '/_authenticated/portfolio/$agencyId': typeof AuthenticatedPortfolioAgencyIdRoute
   '/_authenticated/portfolio/new': typeof AuthenticatedPortfolioNewRoute
   '/_authenticated/settings/hubspot': typeof AuthenticatedSettingsHubspotRoute
@@ -213,6 +223,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/import'
     | '/portfolio'
+    | '/dashboard/movement'
     | '/portfolio/$agencyId'
     | '/portfolio/new'
     | '/settings/hubspot'
@@ -233,6 +244,7 @@ export interface FileRouteTypes {
     | '/consultants'
     | '/dashboard'
     | '/import'
+    | '/dashboard/movement'
     | '/portfolio/$agencyId'
     | '/portfolio/new'
     | '/settings/hubspot'
@@ -255,6 +267,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/import'
     | '/_authenticated/portfolio'
+    | '/_authenticated/dashboard/movement'
     | '/_authenticated/portfolio/$agencyId'
     | '/_authenticated/portfolio/new'
     | '/_authenticated/settings/hubspot'
@@ -381,6 +394,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPortfolioAgencyIdRouteImport
       parentRoute: typeof AuthenticatedPortfolioRoute
     }
+    '/_authenticated/dashboard/movement': {
+      id: '/_authenticated/dashboard/movement'
+      path: '/movement'
+      fullPath: '/dashboard/movement'
+      preLoaderRoute: typeof AuthenticatedDashboardMovementRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
     '/api/public/whatsapp/webhook': {
       id: '/api/public/whatsapp/webhook'
       path: '/api/public/whatsapp/webhook'
@@ -426,6 +446,20 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedDashboardRouteChildren {
+  AuthenticatedDashboardMovementRoute: typeof AuthenticatedDashboardMovementRoute
+}
+
+const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
+  {
+    AuthenticatedDashboardMovementRoute: AuthenticatedDashboardMovementRoute,
+  }
+
+const AuthenticatedDashboardRouteWithChildren =
+  AuthenticatedDashboardRoute._addFileChildren(
+    AuthenticatedDashboardRouteChildren,
+  )
+
 interface AuthenticatedPortfolioRouteChildren {
   AuthenticatedPortfolioAgencyIdRoute: typeof AuthenticatedPortfolioAgencyIdRoute
   AuthenticatedPortfolioNewRoute: typeof AuthenticatedPortfolioNewRoute
@@ -447,7 +481,7 @@ const AuthenticatedPortfolioRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedBotRoute: typeof AuthenticatedBotRoute
   AuthenticatedConsultantsRoute: typeof AuthenticatedConsultantsRoute
-  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRouteWithChildren
   AuthenticatedImportRoute: typeof AuthenticatedImportRoute
   AuthenticatedPortfolioRoute: typeof AuthenticatedPortfolioRouteWithChildren
   AuthenticatedSettingsHubspotRoute: typeof AuthenticatedSettingsHubspotRoute
@@ -458,7 +492,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBotRoute: AuthenticatedBotRoute,
   AuthenticatedConsultantsRoute: AuthenticatedConsultantsRoute,
-  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRouteWithChildren,
   AuthenticatedImportRoute: AuthenticatedImportRoute,
   AuthenticatedPortfolioRoute: AuthenticatedPortfolioRouteWithChildren,
   AuthenticatedSettingsHubspotRoute: AuthenticatedSettingsHubspotRoute,
