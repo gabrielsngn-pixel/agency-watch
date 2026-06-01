@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      agency_change_log: {
+        Row: {
+          agency_id: string
+          agency_name: string
+          change_source: string
+          changed_at: string
+          changed_by: string | null
+          changed_by_name: string | null
+          consultant_id: string | null
+          field_name: string
+          id: string
+          is_stage_change: boolean
+          new_status: Database["public"]["Enums"]["negotiation_status"] | null
+          new_value: string | null
+          old_value: string | null
+          previous_status:
+            | Database["public"]["Enums"]["negotiation_status"]
+            | null
+          slack_user_id: string | null
+        }
+        Insert: {
+          agency_id: string
+          agency_name: string
+          change_source?: string
+          changed_at?: string
+          changed_by?: string | null
+          changed_by_name?: string | null
+          consultant_id?: string | null
+          field_name: string
+          id?: string
+          is_stage_change?: boolean
+          new_status?: Database["public"]["Enums"]["negotiation_status"] | null
+          new_value?: string | null
+          old_value?: string | null
+          previous_status?:
+            | Database["public"]["Enums"]["negotiation_status"]
+            | null
+          slack_user_id?: string | null
+        }
+        Update: {
+          agency_id?: string
+          agency_name?: string
+          change_source?: string
+          changed_at?: string
+          changed_by?: string | null
+          changed_by_name?: string | null
+          consultant_id?: string | null
+          field_name?: string
+          id?: string
+          is_stage_change?: boolean
+          new_status?: Database["public"]["Enums"]["negotiation_status"] | null
+          new_value?: string | null
+          old_value?: string | null
+          previous_status?:
+            | Database["public"]["Enums"]["negotiation_status"]
+            | null
+          slack_user_id?: string | null
+        }
+        Relationships: []
+      }
       agency_interactions: {
         Row: {
           agency_id: string
@@ -222,6 +282,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      kanban_stage_snapshots: {
+        Row: {
+          agency_id: string
+          agency_name: string
+          c_level_support_needed: boolean
+          consultant_id: string | null
+          contract_stock: number
+          created_at: string
+          id: string
+          regional_director: string | null
+          snapshot_date: string
+          status: Database["public"]["Enums"]["negotiation_status"]
+          week_end: string
+          week_start: string
+        }
+        Insert: {
+          agency_id: string
+          agency_name: string
+          c_level_support_needed?: boolean
+          consultant_id?: string | null
+          contract_stock?: number
+          created_at?: string
+          id?: string
+          regional_director?: string | null
+          snapshot_date?: string
+          status: Database["public"]["Enums"]["negotiation_status"]
+          week_end: string
+          week_start: string
+        }
+        Update: {
+          agency_id?: string
+          agency_name?: string
+          c_level_support_needed?: boolean
+          consultant_id?: string | null
+          contract_stock?: number
+          created_at?: string
+          id?: string
+          regional_director?: string | null
+          snapshot_date?: string
+          status?: Database["public"]["Enums"]["negotiation_status"]
+          week_end?: string
+          week_start?: string
+        }
+        Relationships: []
       }
       real_estate_agencies: {
         Row: {
@@ -506,6 +611,7 @@ export type Database = {
     }
     Functions: {
       expire_stale_bot_sessions: { Args: never; Returns: number }
+      generate_kanban_snapshot: { Args: never; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
