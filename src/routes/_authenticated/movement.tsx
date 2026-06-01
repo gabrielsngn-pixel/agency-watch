@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Activity, ArrowRight, ArrowUpRight, ArrowDownRight, Minus,
   TrendingUp, TrendingDown, Clock, GitBranch, Zap, AlertTriangle, Building2,
@@ -234,8 +235,9 @@ function MovementPage() {
     });
   }, [currentByStage, lastByStage]);
 
-  const stagesGain = weeklyComparison.filter((w) => w.delta > 0).length;
-  const stagesLoss = weeklyComparison.filter((w) => w.delta < 0).length;
+  const hasBaseline = lastSnapshot.length > 0;
+  const stagesGain = hasBaseline ? weeklyComparison.filter((w) => w.delta > 0).length : 0;
+  const stagesLoss = hasBaseline ? weeklyComparison.filter((w) => w.delta < 0).length : 0;
 
   // sankey flow: edges previous_status -> new_status
   const flowEdges = useMemo(() => {
@@ -333,8 +335,30 @@ function MovementPage() {
           <StatCard label="Mudanças de etapa" value={stageChangeCount} icon={<GitBranch className="h-4 w-4" />} tone="info" hint="movimentos no funil" />
           <StatCard label="Novas imobiliárias" value={newAgencies} icon={<Building2 className="h-4 w-4" />} tone="success" hint="cadastradas no período" />
           <StatCard label="Sem update 15+ dias" value={staleCount} icon={<AlertTriangle className="h-4 w-4" />} tone="warning" hint="paradas na carteira" />
-          <StatCard label="Etapas ganhando volume" value={stagesGain} icon={<TrendingUp className="h-4 w-4" />} tone="success" hint="vs semana passada" />
-          <StatCard label="Etapas perdendo volume" value={stagesLoss} icon={<TrendingDown className="h-4 w-4" />} tone="destructive" hint="vs semana passada" />
+          <TooltipProvider delayDuration={150}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <StatCard label="Etapas ganhando volume" value={hasBaseline ? stagesGain : "—"} icon={<TrendingUp className="h-4 w-4" />} tone="success" hint={hasBaseline ? "vs semana passada" : "sem baseline ainda"} />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                Quantas <strong>etapas do kanban</strong> têm hoje mais imobiliárias do que tinham na segunda-feira da semana passada. Não conta movimentos individuais — conta colunas que cresceram em volume.
+                {!hasBaseline && <div className="mt-2 text-warning">Ainda não há snapshot da semana anterior, então a comparação não está disponível. O próximo snapshot é gerado automaticamente na próxima segunda 08:00.</div>}
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <StatCard label="Etapas perdendo volume" value={hasBaseline ? stagesLoss : "—"} icon={<TrendingDown className="h-4 w-4" />} tone="destructive" hint={hasBaseline ? "vs semana passada" : "sem baseline ainda"} />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                Quantas <strong>etapas do kanban</strong> têm hoje menos imobiliárias do que tinham na segunda-feira da semana passada. Mede encolhimento de colunas, não movimentos individuais entre etapas.
+                {!hasBaseline && <div className="mt-2 text-warning">Ainda não há snapshot da semana anterior para comparar.</div>}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
         {/* Weekly comparison */}
