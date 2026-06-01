@@ -235,8 +235,9 @@ function MovementPage() {
     });
   }, [currentByStage, lastByStage]);
 
-  const stagesGain = weeklyComparison.filter((w) => w.delta > 0).length;
-  const stagesLoss = weeklyComparison.filter((w) => w.delta < 0).length;
+  const hasBaseline = lastSnapshot.length > 0;
+  const stagesGain = hasBaseline ? weeklyComparison.filter((w) => w.delta > 0).length : 0;
+  const stagesLoss = hasBaseline ? weeklyComparison.filter((w) => w.delta < 0).length : 0;
 
   // sankey flow: edges previous_status -> new_status
   const flowEdges = useMemo(() => {
