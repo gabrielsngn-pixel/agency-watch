@@ -13,6 +13,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedPortfolioRouteImport } from './routes/_authenticated/portfolio'
+import { Route as AuthenticatedMovementRouteImport } from './routes/_authenticated/movement'
 import { Route as AuthenticatedImportRouteImport } from './routes/_authenticated/import'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedConsultantsRouteImport } from './routes/_authenticated/consultants'
@@ -23,7 +24,6 @@ import { Route as AuthenticatedSettingsSlackRouteImport } from './routes/_authen
 import { Route as AuthenticatedSettingsHubspotRouteImport } from './routes/_authenticated/settings.hubspot'
 import { Route as AuthenticatedPortfolioNewRouteImport } from './routes/_authenticated/portfolio.new'
 import { Route as AuthenticatedPortfolioAgencyIdRouteImport } from './routes/_authenticated/portfolio.$agencyId'
-import { Route as AuthenticatedDashboardMovementRouteImport } from './routes/_authenticated/dashboard.movement'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp.webhook'
 import { Route as ApiPublicSlackInteractionsRouteImport } from './routes/api/public/slack.interactions'
 import { Route as ApiPublicSlackHealthRouteImport } from './routes/api/public/slack.health'
@@ -48,6 +48,11 @@ const IndexRoute = IndexRouteImport.update({
 const AuthenticatedPortfolioRoute = AuthenticatedPortfolioRouteImport.update({
   id: '/portfolio',
   path: '/portfolio',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMovementRoute = AuthenticatedMovementRouteImport.update({
+  id: '/movement',
+  path: '/movement',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedImportRoute = AuthenticatedImportRouteImport.update({
@@ -107,12 +112,6 @@ const AuthenticatedPortfolioAgencyIdRoute =
     path: '/$agencyId',
     getParentRoute: () => AuthenticatedPortfolioRoute,
   } as any)
-const AuthenticatedDashboardMovementRoute =
-  AuthenticatedDashboardMovementRouteImport.update({
-    id: '/movement',
-    path: '/movement',
-    getParentRoute: () => AuthenticatedDashboardRoute,
-  } as any)
 const ApiPublicWhatsappWebhookRoute =
   ApiPublicWhatsappWebhookRouteImport.update({
     id: '/api/public/whatsapp/webhook',
@@ -151,10 +150,10 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/bot': typeof AuthenticatedBotRoute
   '/consultants': typeof AuthenticatedConsultantsRoute
-  '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/dashboard': typeof AuthenticatedDashboardRoute
   '/import': typeof AuthenticatedImportRoute
+  '/movement': typeof AuthenticatedMovementRoute
   '/portfolio': typeof AuthenticatedPortfolioRouteWithChildren
-  '/dashboard/movement': typeof AuthenticatedDashboardMovementRoute
   '/portfolio/$agencyId': typeof AuthenticatedPortfolioAgencyIdRoute
   '/portfolio/new': typeof AuthenticatedPortfolioNewRoute
   '/settings/hubspot': typeof AuthenticatedSettingsHubspotRoute
@@ -173,9 +172,9 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/bot': typeof AuthenticatedBotRoute
   '/consultants': typeof AuthenticatedConsultantsRoute
-  '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/dashboard': typeof AuthenticatedDashboardRoute
   '/import': typeof AuthenticatedImportRoute
-  '/dashboard/movement': typeof AuthenticatedDashboardMovementRoute
+  '/movement': typeof AuthenticatedMovementRoute
   '/portfolio/$agencyId': typeof AuthenticatedPortfolioAgencyIdRoute
   '/portfolio/new': typeof AuthenticatedPortfolioNewRoute
   '/settings/hubspot': typeof AuthenticatedSettingsHubspotRoute
@@ -196,10 +195,10 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_authenticated/bot': typeof AuthenticatedBotRoute
   '/_authenticated/consultants': typeof AuthenticatedConsultantsRoute
-  '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/import': typeof AuthenticatedImportRoute
+  '/_authenticated/movement': typeof AuthenticatedMovementRoute
   '/_authenticated/portfolio': typeof AuthenticatedPortfolioRouteWithChildren
-  '/_authenticated/dashboard/movement': typeof AuthenticatedDashboardMovementRoute
   '/_authenticated/portfolio/$agencyId': typeof AuthenticatedPortfolioAgencyIdRoute
   '/_authenticated/portfolio/new': typeof AuthenticatedPortfolioNewRoute
   '/_authenticated/settings/hubspot': typeof AuthenticatedSettingsHubspotRoute
@@ -222,8 +221,8 @@ export interface FileRouteTypes {
     | '/consultants'
     | '/dashboard'
     | '/import'
+    | '/movement'
     | '/portfolio'
-    | '/dashboard/movement'
     | '/portfolio/$agencyId'
     | '/portfolio/new'
     | '/settings/hubspot'
@@ -244,7 +243,7 @@ export interface FileRouteTypes {
     | '/consultants'
     | '/dashboard'
     | '/import'
-    | '/dashboard/movement'
+    | '/movement'
     | '/portfolio/$agencyId'
     | '/portfolio/new'
     | '/settings/hubspot'
@@ -266,8 +265,8 @@ export interface FileRouteTypes {
     | '/_authenticated/consultants'
     | '/_authenticated/dashboard'
     | '/_authenticated/import'
+    | '/_authenticated/movement'
     | '/_authenticated/portfolio'
-    | '/_authenticated/dashboard/movement'
     | '/_authenticated/portfolio/$agencyId'
     | '/_authenticated/portfolio/new'
     | '/_authenticated/settings/hubspot'
@@ -322,6 +321,13 @@ declare module '@tanstack/react-router' {
       path: '/portfolio'
       fullPath: '/portfolio'
       preLoaderRoute: typeof AuthenticatedPortfolioRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/movement': {
+      id: '/_authenticated/movement'
+      path: '/movement'
+      fullPath: '/movement'
+      preLoaderRoute: typeof AuthenticatedMovementRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/import': {
@@ -394,13 +400,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPortfolioAgencyIdRouteImport
       parentRoute: typeof AuthenticatedPortfolioRoute
     }
-    '/_authenticated/dashboard/movement': {
-      id: '/_authenticated/dashboard/movement'
-      path: '/movement'
-      fullPath: '/dashboard/movement'
-      preLoaderRoute: typeof AuthenticatedDashboardMovementRouteImport
-      parentRoute: typeof AuthenticatedDashboardRoute
-    }
     '/api/public/whatsapp/webhook': {
       id: '/api/public/whatsapp/webhook'
       path: '/api/public/whatsapp/webhook'
@@ -446,20 +445,6 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AuthenticatedDashboardRouteChildren {
-  AuthenticatedDashboardMovementRoute: typeof AuthenticatedDashboardMovementRoute
-}
-
-const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
-  {
-    AuthenticatedDashboardMovementRoute: AuthenticatedDashboardMovementRoute,
-  }
-
-const AuthenticatedDashboardRouteWithChildren =
-  AuthenticatedDashboardRoute._addFileChildren(
-    AuthenticatedDashboardRouteChildren,
-  )
-
 interface AuthenticatedPortfolioRouteChildren {
   AuthenticatedPortfolioAgencyIdRoute: typeof AuthenticatedPortfolioAgencyIdRoute
   AuthenticatedPortfolioNewRoute: typeof AuthenticatedPortfolioNewRoute
@@ -481,8 +466,9 @@ const AuthenticatedPortfolioRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedBotRoute: typeof AuthenticatedBotRoute
   AuthenticatedConsultantsRoute: typeof AuthenticatedConsultantsRoute
-  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRouteWithChildren
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedImportRoute: typeof AuthenticatedImportRoute
+  AuthenticatedMovementRoute: typeof AuthenticatedMovementRoute
   AuthenticatedPortfolioRoute: typeof AuthenticatedPortfolioRouteWithChildren
   AuthenticatedSettingsHubspotRoute: typeof AuthenticatedSettingsHubspotRoute
   AuthenticatedSettingsSlackRoute: typeof AuthenticatedSettingsSlackRoute
@@ -492,8 +478,9 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBotRoute: AuthenticatedBotRoute,
   AuthenticatedConsultantsRoute: AuthenticatedConsultantsRoute,
-  AuthenticatedDashboardRoute: AuthenticatedDashboardRouteWithChildren,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedImportRoute: AuthenticatedImportRoute,
+  AuthenticatedMovementRoute: AuthenticatedMovementRoute,
   AuthenticatedPortfolioRoute: AuthenticatedPortfolioRouteWithChildren,
   AuthenticatedSettingsHubspotRoute: AuthenticatedSettingsHubspotRoute,
   AuthenticatedSettingsSlackRoute: AuthenticatedSettingsSlackRoute,
@@ -517,3 +504,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
