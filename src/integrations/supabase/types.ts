@@ -206,6 +206,51 @@ export type Database = {
           },
         ]
       }
+      client_import_history: {
+        Row: {
+          agency_name: string | null
+          created_at: string
+          id: string
+          invalid_rows: number
+          notes: string | null
+          original_filename: string
+          original_format: string | null
+          standardized_file_path: string | null
+          total_rows: number
+          user_email: string | null
+          user_id: string
+          valid_rows: number
+        }
+        Insert: {
+          agency_name?: string | null
+          created_at?: string
+          id?: string
+          invalid_rows?: number
+          notes?: string | null
+          original_filename: string
+          original_format?: string | null
+          standardized_file_path?: string | null
+          total_rows?: number
+          user_email?: string | null
+          user_id: string
+          valid_rows?: number
+        }
+        Update: {
+          agency_name?: string | null
+          created_at?: string
+          id?: string
+          invalid_rows?: number
+          notes?: string | null
+          original_filename?: string
+          original_format?: string | null
+          standardized_file_path?: string | null
+          total_rows?: number
+          user_email?: string | null
+          user_id?: string
+          valid_rows?: number
+        }
+        Relationships: []
+      }
       consultants: {
         Row: {
           active: boolean
