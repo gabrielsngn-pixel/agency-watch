@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedPortfolioRouteImport } from './routes/_authenticated/portfolio'
 import { Route as AuthenticatedMovementRouteImport } from './routes/_authenticated/movement'
+import { Route as AuthenticatedImportClientsRouteImport } from './routes/_authenticated/import-clients'
 import { Route as AuthenticatedImportRouteImport } from './routes/_authenticated/import'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedConsultantsRouteImport } from './routes/_authenticated/consultants'
@@ -55,6 +56,12 @@ const AuthenticatedMovementRoute = AuthenticatedMovementRouteImport.update({
   path: '/movement',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedImportClientsRoute =
+  AuthenticatedImportClientsRouteImport.update({
+    id: '/import-clients',
+    path: '/import-clients',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedImportRoute = AuthenticatedImportRouteImport.update({
   id: '/import',
   path: '/import',
@@ -152,6 +159,7 @@ export interface FileRoutesByFullPath {
   '/consultants': typeof AuthenticatedConsultantsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/import': typeof AuthenticatedImportRoute
+  '/import-clients': typeof AuthenticatedImportClientsRoute
   '/movement': typeof AuthenticatedMovementRoute
   '/portfolio': typeof AuthenticatedPortfolioRouteWithChildren
   '/portfolio/$agencyId': typeof AuthenticatedPortfolioAgencyIdRoute
@@ -174,6 +182,7 @@ export interface FileRoutesByTo {
   '/consultants': typeof AuthenticatedConsultantsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/import': typeof AuthenticatedImportRoute
+  '/import-clients': typeof AuthenticatedImportClientsRoute
   '/movement': typeof AuthenticatedMovementRoute
   '/portfolio/$agencyId': typeof AuthenticatedPortfolioAgencyIdRoute
   '/portfolio/new': typeof AuthenticatedPortfolioNewRoute
@@ -197,6 +206,7 @@ export interface FileRoutesById {
   '/_authenticated/consultants': typeof AuthenticatedConsultantsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/import': typeof AuthenticatedImportRoute
+  '/_authenticated/import-clients': typeof AuthenticatedImportClientsRoute
   '/_authenticated/movement': typeof AuthenticatedMovementRoute
   '/_authenticated/portfolio': typeof AuthenticatedPortfolioRouteWithChildren
   '/_authenticated/portfolio/$agencyId': typeof AuthenticatedPortfolioAgencyIdRoute
@@ -221,6 +231,7 @@ export interface FileRouteTypes {
     | '/consultants'
     | '/dashboard'
     | '/import'
+    | '/import-clients'
     | '/movement'
     | '/portfolio'
     | '/portfolio/$agencyId'
@@ -243,6 +254,7 @@ export interface FileRouteTypes {
     | '/consultants'
     | '/dashboard'
     | '/import'
+    | '/import-clients'
     | '/movement'
     | '/portfolio/$agencyId'
     | '/portfolio/new'
@@ -265,6 +277,7 @@ export interface FileRouteTypes {
     | '/_authenticated/consultants'
     | '/_authenticated/dashboard'
     | '/_authenticated/import'
+    | '/_authenticated/import-clients'
     | '/_authenticated/movement'
     | '/_authenticated/portfolio'
     | '/_authenticated/portfolio/$agencyId'
@@ -328,6 +341,13 @@ declare module '@tanstack/react-router' {
       path: '/movement'
       fullPath: '/movement'
       preLoaderRoute: typeof AuthenticatedMovementRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/import-clients': {
+      id: '/_authenticated/import-clients'
+      path: '/import-clients'
+      fullPath: '/import-clients'
+      preLoaderRoute: typeof AuthenticatedImportClientsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/import': {
@@ -468,6 +488,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedConsultantsRoute: typeof AuthenticatedConsultantsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedImportRoute: typeof AuthenticatedImportRoute
+  AuthenticatedImportClientsRoute: typeof AuthenticatedImportClientsRoute
   AuthenticatedMovementRoute: typeof AuthenticatedMovementRoute
   AuthenticatedPortfolioRoute: typeof AuthenticatedPortfolioRouteWithChildren
   AuthenticatedSettingsHubspotRoute: typeof AuthenticatedSettingsHubspotRoute
@@ -480,6 +501,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedConsultantsRoute: AuthenticatedConsultantsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedImportRoute: AuthenticatedImportRoute,
+  AuthenticatedImportClientsRoute: AuthenticatedImportClientsRoute,
   AuthenticatedMovementRoute: AuthenticatedMovementRoute,
   AuthenticatedPortfolioRoute: AuthenticatedPortfolioRouteWithChildren,
   AuthenticatedSettingsHubspotRoute: AuthenticatedSettingsHubspotRoute,

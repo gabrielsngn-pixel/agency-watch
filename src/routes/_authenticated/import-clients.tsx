@@ -241,7 +241,7 @@ function ImportClientsPage() {
                   {parsed.headers.map((h) => (
                     <div key={h} className="flex items-center gap-2">
                       <div className="text-xs text-muted-foreground truncate flex-1" title={h}>{h}</div>
-                      <Select value={mapping[h] ?? ""} onValueChange={(v) => setMappingFor(h, v as CredprontoColumn | "")}>
+                      <Select value={mapping[h] || "__ignore"} onValueChange={(v) => setMappingFor(h, v === "__ignore" ? "" : (v as CredprontoColumn))}>
                         <SelectTrigger className="w-[60%]">
                           <SelectValue placeholder="— ignorar —" />
                         </SelectTrigger>
