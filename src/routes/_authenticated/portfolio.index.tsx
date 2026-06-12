@@ -189,12 +189,6 @@ function KanbanBoard({ agencies, isLoading }: { agencies: any[]; isLoading: bool
       const userId = userData.user?.id;
       const userName = userData.user?.email ?? null;
 
-      const { error: upErr } = await supabase
-        .from("real_estate_agencies")
-        .update({ negotiation_status: toStatus, updated_by: userId })
-        .eq("id", agency.id);
-      if (upErr) throw upErr;
-
       const { error: intErr } = await supabase.from("agency_activities").insert({
         agency_id: agency.id,
         agency_name: agency.name,

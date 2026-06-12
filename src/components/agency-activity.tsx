@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { CalendarClock, Download, FileUp, MessageSquarePlus } from "lucide-react";
+import { Download, MessageSquarePlus } from "lucide-react";
 import { ACTIVITY_TYPE_LABEL, AGENCY_ACTIVITY_TYPES, NEGOTIATION_STATUSES, type AgencyActivityType } from "@/lib/constants";
 
 type Agency = { id: string; name: string; negotiation_status: string };
@@ -57,7 +57,7 @@ export function NewAgencyActivityDialog({ agency, onSaved }: { agency: Agency; o
         next_steps: form.next_steps.trim() || null,
         next_step_date: form.next_step_date || null,
         status_changed: form.status_changed,
-        new_status: form.status_changed ? form.new_status as any : null,
+        new_status: form.status_changed ? form.new_status as (typeof NEGOTIATION_STATUSES)[number] : null,
         c_level_support_needed: form.c_level_support_needed,
         attachment_url: attachmentUrl,
         attachment_name: file?.name ?? null,

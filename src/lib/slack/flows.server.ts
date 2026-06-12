@@ -245,30 +245,20 @@ export async function handleViewSubmission(payload: any): Promise<any> {
     const nextStepsText = `Apoio C-Level (${urgencyLabel}): ${reason}`;
     const now = new Date().toISOString();
 
-    // 1. Update agency: flag C-Level, refresh interaction counters and next steps
-    await supabaseAdmin
-      .from("real_estate_agencies")
-      .update({
-        c_level_support_needed: true,
-        next_steps: nextStepsText,
-        last_interaction_date: now,
-        total_interactions: (agency.total_interactions ?? 0) + 1,
-        updated_by: consultant.user_id,
-      })
-      .eq("id", agencyId);
-
-    // 2. Append history entry
-    await supabaseAdmin.from("agency_interactions").insert({
+    await supabaseAdmin.from("agency_activities").insert({
       agency_id: agencyId,
-      created_by: consultant.user_id,
-      created_by_name: consultant.name,
-      interaction_type: "slack",
-      source: "web",
-      feedback: feedbackText,
+      agency_name: agency.name,
+      activity_type: "c_level_support",
+      activity_date: now,
+      registered_by_user_id: consultant.user_id,
+      registered_by_name: consultant.name,
+      registered_by_email: consultant.email,
+      summary: reason,
+      interaction_result: feedbackText,
       next_steps: nextStepsText,
       c_level_support_needed: true,
-      status_after: agency.negotiation_status,
-      interaction_date: now,
+      status_changed: false,
+      source: "slack",
     });
 
     await dmConsultant(

@@ -83,7 +83,7 @@ function DashboardPage() {
   const startToday = new Date(); startToday.setHours(0, 0, 0, 0);
   const startWeek = new Date(startToday); startWeek.setDate(startToday.getDate() - ((startToday.getDay() + 6) % 7));
   const endWeek = new Date(startWeek); endWeek.setDate(startWeek.getDate() + 7);
-  const agencyById = new Map(agencies.map((agency: any) => [agency.id, agency]));
+  const agencyById = useMemo(() => new Map(agencies.map((agency: any) => [agency.id, agency])), [agencies]);
   const todayAgencyIds = new Set(activities.filter((item: any) => new Date(item.activity_date) >= startToday).map((item: any) => item.agency_id));
   const weekAgencyIds = new Set(activities.filter((item: any) => new Date(item.activity_date) >= startWeek).map((item: any) => item.agency_id));
   const noActivity7 = agencies.filter((agency: any) => { const days = daysSince(agency.last_interaction_date); return days === null || days >= 7; }).length;
@@ -109,7 +109,7 @@ function DashboardPage() {
     if (stateFilter !== "all" && agency?.state !== stateFilter) return false;
     if (directorFilter !== "all" && agency?.regional_director !== directorFilter) return false;
     return true;
-  }), [activities, agencies, agencyFilter, statusFilter, typeFilter, dateFilter, nextActionFilter, sourceFilter, cLevelFilter, stateFilter, directorFilter, todayKey, weekEndKey]);
+  }), [activities, agencyById, agencyFilter, statusFilter, typeFilter, dateFilter, nextActionFilter, sourceFilter, cLevelFilter, stateFilter, directorFilter, todayKey, weekEndKey]);
 
   const funnelData = NEGOTIATION_STATUSES.map((s) => ({
     name: s,
