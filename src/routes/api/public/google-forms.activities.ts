@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
-import { AGENCY_ACTIVITY_TYPES, NEGOTIATION_STATUSES } from "@/lib/constants";
+import { AGENCY_ACTIVITY_TYPES, NEGOTIATION_STATUSES, type AgencyActivityType } from "@/lib/constants";
 
 const payloadSchema = z.object({
   consultant_email: z.string().email().max(320),
@@ -83,7 +83,7 @@ export const Route = createFileRoute("/api/public/google-forms/activities")({
         const { error } = await supabaseAdmin.from("agency_activities").insert({
           agency_id: agency.id,
           agency_name: agency.name,
-          activity_type: input.activity_type as any,
+          activity_type: input.activity_type as AgencyActivityType,
           registered_by_user_id: consultant.user_id,
           registered_by_name: consultant.name,
           registered_by_email: consultant.email,
