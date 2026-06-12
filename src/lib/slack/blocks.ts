@@ -1,4 +1,4 @@
-import { NEGOTIATION_STATUSES, BR_STATES, GUARANTOR_TYPES } from "@/lib/constants";
+import { NEGOTIATION_STATUSES, BR_STATES, GUARANTOR_TYPES, AGENCY_ACTIVITY_TYPES } from "@/lib/constants";
 
 const option = (value: string, text?: string) => ({
   text: { type: "plain_text", text: text ?? value, emoji: true },
@@ -15,7 +15,7 @@ export function homeMenu() {
         block_id: "main_menu",
         elements: [
           { type: "button", text: { type: "plain_text", text: "📋 Pendências" }, action_id: "view_pending", style: "primary" },
-          { type: "button", text: { type: "plain_text", text: "✏️ Atualizar imobiliária" }, action_id: "update_agency" },
+          { type: "button", text: { type: "plain_text", text: "✏️ Registrar atividade / FUP" }, action_id: "update_agency" },
           { type: "button", text: { type: "plain_text", text: "🆕 Nova imobiliária" }, action_id: "create_agency" },
           { type: "button", text: { type: "plain_text", text: "🚨 Apoio C-Level" }, action_id: "request_c_level_support", style: "danger" },
         ],
@@ -70,12 +70,13 @@ export function updateAgencyView(args: {
 }) {
   const { agency } = args;
   const statusOpts = NEGOTIATION_STATUSES.map((s) => option(s));
+  const activityOpts = AGENCY_ACTIVITY_TYPES.map(([value, label]) => option(value, label));
 
   return {
     type: "modal",
-    callback_id: "submit_update",
+    callback_id: "submit_activity",
     private_metadata: JSON.stringify({ agency_id: agency.id, flow: args.flow }),
-    title: { type: "plain_text", text: "Atualizar imobiliária" },
+    title: { type: "plain_text", text: "Registrar atividade" },
     submit: { type: "plain_text", text: "Revisar" },
     close: { type: "plain_text", text: "Cancelar" },
     blocks: [
@@ -87,23 +88,13 @@ export function updateAgencyView(args: {
         },
       },
       { type: "divider" },
-      {
-        type: "input",
-        block_id: "status",
-        optional: true,
-        label: { type: "plain_text", text: "Status da negociação" },
-        element: {
-          type: "static_select",
-          action_id: "v",
-          initial_option: option(agency.negotiation_status),
-          options: statusOpts,
-        },
-      },
+      { type: "input", block_id: "activity_type", label: { type: "plain_text", text: "Tipo de atividade" }, element: { type: "static_select", action_id: "v", initial_option: activityOpts.find((item) => item.value === "follow_up"), options: activityOpts } },
+      { type: "input", block_id: "summary", label: { type: "plain_text", text: "Resumo da atividade" }, element: { type: "plain_text_input", action_id: "v", multiline: true } },
       {
         type: "input",
         block_id: "feedback",
         optional: true,
-        label: { type: "plain_text", text: "Feedback recebido" },
+        label: { type: "plain_text", text: "Resultado da interação" },
         element: { type: "plain_text_input", action_id: "v", multiline: true },
       },
       {
@@ -113,26 +104,9 @@ export function updateAgencyView(args: {
         label: { type: "plain_text", text: "Próximos passos" },
         element: { type: "plain_text_input", action_id: "v", multiline: true },
       },
-      {
-        type: "input",
-        block_id: "offer",
-        optional: true,
-        label: { type: "plain_text", text: "Proposta atual" },
-        element: { type: "plain_text_input", action_id: "v", initial_value: agency.current_offer ?? "" },
-      },
-      {
-        type: "input",
-        block_id: "stock",
-        optional: true,
-        label: { type: "plain_text", text: "Estoque de contratos" },
-        element: {
-          type: "number_input",
-          is_decimal_allowed: false,
-          action_id: "v",
-          initial_value: String(agency.contract_stock ?? 0),
-          min_value: "0",
-        },
-      },
+      { type: "input", block_id: "next_step_date", optional: true, label: { type: "plain_text", text: "Data do próximo passo" }, element: { type: "datepicker", action_id: "v", placeholder: { type: "plain_text", text: "Selecione" } } },
+      { type: "input", block_id: "status_changed", label: { type: "plain_text", text: "Mudou de etapa no Kanban?" }, element: { type: "radio_buttons", action_id: "v", initial_option: option("no", "Não"), options: [option("no", "Não"), option("yes", "Sim")] } },
+      { type: "input", block_id: "new_status", optional: true, label: { type: "plain_text", text: "Nova etapa (se mudou)" }, element: { type: "static_select", action_id: "v", options: statusOpts } },
       {
         type: "actions",
         block_id: "clevel",

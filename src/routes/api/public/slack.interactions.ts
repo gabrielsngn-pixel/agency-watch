@@ -10,7 +10,7 @@ export const Route = createFileRoute("/api/public/slack/interactions")({
   server: {
     handlers: {
       GET: async () =>
-        Response.json({ ok: true, version: "crm-modals-v1" }),
+        Response.json({ ok: true, version: "agency-activities-v2" }),
       POST: async ({ request }) => {
         const rid = Math.random().toString(36).slice(2, 8);
         const log = (msg: string, extra?: any) =>

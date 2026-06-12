@@ -189,22 +189,17 @@ function KanbanBoard({ agencies, isLoading }: { agencies: any[]; isLoading: bool
       const userId = userData.user?.id;
       const userName = userData.user?.email ?? null;
 
-      const { error: upErr } = await supabase
-        .from("real_estate_agencies")
-        .update({ negotiation_status: toStatus, updated_by: userId })
-        .eq("id", agency.id);
-      if (upErr) throw upErr;
-
-      // Log interaction for history (trigger will sync agency timestamps)
-      const { error: intErr } = await supabase.from("agency_interactions").insert({
+      const { error: intErr } = await supabase.from("agency_activities").insert({
         agency_id: agency.id,
-        interaction_type: "status_change",
-        status_before: fromStatus,
-        status_after: toStatus,
-        feedback: `Status alterado de "${fromStatus}" para "${toStatus}" (kanban).`,
+        agency_name: agency.name,
+        activity_type: "cadastro_update",
+        summary: `Etapa alterada de "${fromStatus}" para "${toStatus}" pelo Kanban.`,
+        status_changed: true,
+        new_status: toStatus,
         source: "web",
-        created_by: userId,
-        created_by_name: userName,
+        registered_by_user_id: userId,
+        registered_by_name: userName,
+        registered_by_email: userName,
       });
       if (intErr) throw intErr;
     },

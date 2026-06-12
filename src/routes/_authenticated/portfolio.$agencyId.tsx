@@ -14,9 +14,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { ArrowLeft, MessageSquarePlus, Building2, Phone, MapPin, User, Shield, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, User, Shield, Pencil, Trash2 } from "lucide-react";
 import { NEGOTIATION_STATUSES, BR_STATES, GUARANTOR_TYPES, daysSince } from "@/lib/constants";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { AgencyActivityTimeline, NewAgencyActivityDialog } from "@/components/agency-activity";
 
 export const Route = createFileRoute("/_authenticated/portfolio/$agencyId")({
   component: AgencyDetailPage,
@@ -41,14 +42,15 @@ function AgencyDetailPage() {
     },
   });
 
-  const { data: interactions = [] } = useQuery({
-    queryKey: ["interactions", agencyId],
+  const { data: activities = [] } = useQuery({
+    queryKey: ["agency-activities", agencyId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("agency_interactions")
+      const { data, error } = await supabase
+        .from("agency_activities")
         .select("*")
         .eq("agency_id", agencyId)
-        .order("interaction_date", { ascending: false });
+        .order("activity_date", { ascending: false });
+      if (error) throw error;
       return data ?? [];
     },
   });
@@ -76,11 +78,12 @@ function AgencyDetailPage() {
               qc.invalidateQueries({ queryKey: ["agencies-list"] });
               qc.invalidateQueries({ queryKey: ["agencies-all"] });
             }} />
-            <NewInteractionDialog agency={agency} onSaved={() => {
+            <NewAgencyActivityDialog agency={agency} onSaved={() => {
               qc.invalidateQueries({ queryKey: ["agency", agencyId] });
-              qc.invalidateQueries({ queryKey: ["interactions", agencyId] });
+              qc.invalidateQueries({ queryKey: ["agency-activities", agencyId] });
               qc.invalidateQueries({ queryKey: ["agencies-list"] });
               qc.invalidateQueries({ queryKey: ["agencies-all"] });
+              qc.invalidateQueries({ queryKey: ["activities-all"] });
             }} />
           </div>
         }
@@ -138,24 +141,8 @@ function AgencyDetailPage() {
         </div>
 
         <Card className="lg:col-span-1 h-fit">
-          <CardHeader><CardTitle className="text-base">Histórico de interações ({interactions.length})</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
-            {interactions.length === 0 && <div className="text-sm text-muted-foreground">Nenhuma interação registrada.</div>}
-            {interactions.map((i: any) => (
-              <div key={i.id} className="border-l-2 border-primary/30 pl-3 pb-3">
-                <div className="text-xs text-muted-foreground flex items-center justify-between">
-                  <span>{new Date(i.interaction_date).toLocaleString("pt-BR")}</span>
-                  <span className="uppercase tracking-wider">{i.source}</span>
-                </div>
-                {i.status_after && (
-                  <div className="mt-1.5"><StatusBadge status={i.status_after} /></div>
-                )}
-                {i.feedback && <div className="text-sm mt-2 whitespace-pre-wrap">{i.feedback}</div>}
-                {i.next_steps && <div className="text-xs mt-1 text-muted-foreground"><b>Próximos:</b> {i.next_steps}</div>}
-                {i.created_by_name && <div className="text-xs mt-1 text-muted-foreground">por {i.created_by_name}</div>}
-              </div>
-            ))}
-          </CardContent>
+          <CardHeader><CardTitle className="text-base">Timeline de Atividades ({activities.length})</CardTitle></CardHeader>
+          <CardContent><AgencyActivityTimeline activities={activities} /></CardContent>
         </Card>
       </div>
     </div>
@@ -168,107 +155,6 @@ function Info({ label, children, full, icon }: { label: string; children: React.
       <div className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">{icon}{label}</div>
       <div className="mt-1 font-medium">{children}</div>
     </div>
-  );
-}
-
-function NewInteractionDialog({ agency, onSaved }: { agency: any; onSaved: () => void }) {
-  const [open, setOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    status_after: agency.negotiation_status,
-    feedback: "",
-    next_steps: "",
-    current_offer: agency.current_offer || "",
-    contract_stock: agency.contract_stock ?? 0,
-    c_level_support_needed: agency.c_level_support_needed ?? false,
-    interaction_type: "Reunião",
-  });
-  const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
-
-  const submit = async () => {
-    setSaving(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await supabase.from("agency_interactions").insert({
-        agency_id: agency.id,
-        status_before: agency.negotiation_status,
-        status_after: form.status_after,
-        feedback: form.feedback || null,
-        next_steps: form.next_steps || null,
-        current_offer: form.current_offer || null,
-        contract_stock: form.contract_stock,
-        c_level_support_needed: form.c_level_support_needed,
-        interaction_type: form.interaction_type,
-        source: "web",
-        created_by: user?.id,
-        created_by_name: user?.email,
-      });
-      if (error) throw error;
-      toast.success("Interação registrada");
-      setOpen(false);
-      onSaved();
-    } catch (e: any) {
-      toast.error(e.message || "Erro ao registrar");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button><MessageSquarePlus className="h-4 w-4 mr-1" /> Nova interação</Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>Registrar interação</DialogTitle></DialogHeader>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Tipo</Label>
-              <Select value={form.interaction_type} onValueChange={(v) => set("interaction_type", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {["Reunião", "Ligação", "Email", "WhatsApp", "Visita", "Outro"].map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Novo status</Label>
-              <Select value={form.status_after} onValueChange={(v) => set("status_after", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{NEGOTIATION_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Feedback</Label>
-            <Textarea rows={3} value={form.feedback} onChange={(e) => set("feedback", e.target.value)} placeholder="O que aconteceu nesta interação?" />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Próximos passos</Label>
-            <Textarea rows={2} value={form.next_steps} onChange={(e) => set("next_steps", e.target.value)} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Oferta atual</Label>
-              <Input value={form.current_offer} onChange={(e) => set("current_offer", e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Estoque de contratos</Label>
-              <Input type="number" min={0} value={form.contract_stock} onChange={(e) => set("contract_stock", parseInt(e.target.value) || 0)} />
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Switch checked={form.c_level_support_needed} onCheckedChange={(v) => set("c_level_support_needed", v)} />
-            <Label className="text-sm font-normal">Necessita suporte C-Level</Label>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button onClick={submit} disabled={saving}>{saving ? "Salvando…" : "Registrar"}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }
 

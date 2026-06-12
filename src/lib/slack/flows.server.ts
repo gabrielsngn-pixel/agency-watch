@@ -245,30 +245,20 @@ export async function handleViewSubmission(payload: any): Promise<any> {
     const nextStepsText = `Apoio C-Level (${urgencyLabel}): ${reason}`;
     const now = new Date().toISOString();
 
-    // 1. Update agency: flag C-Level, refresh interaction counters and next steps
-    await supabaseAdmin
-      .from("real_estate_agencies")
-      .update({
-        c_level_support_needed: true,
-        next_steps: nextStepsText,
-        last_interaction_date: now,
-        total_interactions: (agency.total_interactions ?? 0) + 1,
-        updated_by: consultant.user_id,
-      })
-      .eq("id", agencyId);
-
-    // 2. Append history entry
-    await supabaseAdmin.from("agency_interactions").insert({
+    await supabaseAdmin.from("agency_activities").insert({
       agency_id: agencyId,
-      created_by: consultant.user_id,
-      created_by_name: consultant.name,
-      interaction_type: "slack",
-      source: "web",
-      feedback: feedbackText,
+      agency_name: agency.name,
+      activity_type: "c_level_support",
+      activity_date: now,
+      registered_by_user_id: consultant.user_id,
+      registered_by_name: consultant.name,
+      registered_by_email: consultant.email,
+      summary: reason,
+      interaction_result: feedbackText,
       next_steps: nextStepsText,
       c_level_support_needed: true,
-      status_after: agency.negotiation_status,
-      interaction_date: now,
+      status_changed: false,
+      source: "slack",
     });
 
     await dmConsultant(
@@ -284,36 +274,42 @@ export async function handleViewSubmission(payload: any): Promise<any> {
     return { response_action: "clear" };
   }
 
-  if (callback_id === "submit_update") {
+  if (callback_id === "submit_activity") {
     const meta = JSON.parse(view.private_metadata || "{}");
     const agency = await getAgency(meta.agency_id, consultant);
     if (!agency) return { response_action: "errors", errors: { status: "Imobiliária não encontrada." } };
     const patch: any = {
-      status: values.status?.v?.selected_option?.value ?? null,
-      stock: values.stock?.v?.value ? parseInt(values.stock.v.value, 10) : null,
-      guarantor_type: values.guarantor_type?.v?.selected_option?.value ?? null,
-      guarantor: values.guarantor?.v?.value ?? null,
-      offer: values.offer?.v?.value ?? null,
-      feedback: values.feedback?.v?.value ?? null,
+      activity_type: values.activity_type?.v?.selected_option?.value,
+      summary: values.summary?.v?.value?.trim(),
+      feedback: values.feedback?.v?.value?.trim() ?? null,
       next_steps: values.next_steps?.v?.value ?? null,
+      next_step_date: values.next_step_date?.v?.selected_date ?? null,
+      status_changed: values.status_changed?.v?.selected_option?.value === "yes",
+      status: values.new_status?.v?.selected_option?.value ?? null,
       clevel: !!values.clevel?.v?.selected_options?.length,
     };
+    const errors: Record<string, string> = {};
+    if (!patch.activity_type) errors.activity_type = "Selecione o tipo da atividade.";
+    if (!patch.summary) errors.summary = "Descreva o resumo da atividade.";
+    if (patch.status_changed && !patch.status) errors.new_status = "Selecione a nova etapa.";
+    if (patch.status_changed && patch.status === agency.negotiation_status) errors.new_status = "A nova etapa deve ser diferente da atual.";
+    if (Object.keys(errors).length) return { response_action: "errors", errors };
 
     const summary = [
       `*${agency.name}* — ${agency.city}/${agency.state}`,
-      patch.status ? `*Status:* ${patch.status}` : null,
-      patch.stock !== null && patch.stock !== undefined && !isNaN(patch.stock) ? `*Estoque:* ${patch.stock}` : null,
-      patch.guarantor_type ? `*Garantidor:* ${patch.guarantor_type}${patch.guarantor ? ` (${patch.guarantor})` : ""}` : null,
-      patch.offer ? `*Oferta:* ${patch.offer}` : null,
-      patch.feedback ? `*Feedback:* ${patch.feedback}` : null,
+      `*Atividade:* ${patch.activity_type}`,
+      `*Resumo:* ${patch.summary}`,
+      patch.feedback ? `*Resultado:* ${patch.feedback}` : null,
       patch.next_steps ? `*Próximos passos:* ${patch.next_steps}` : null,
+      patch.next_step_date ? `*Data:* ${patch.next_step_date}` : null,
+      patch.status_changed ? `*Nova etapa:* ${patch.status}` : "*Etapa:* mantida",
       patch.clevel ? `🚨 *Apoio C-Level solicitado*` : null,
     ].filter(Boolean) as string[];
 
     return {
       response_action: "push",
       view: confirmView({
-        title: "Confirmar update",
+        title: "Confirmar atividade",
         summaryLines: summary,
         private_metadata: JSON.stringify({ kind: "update", agency_id: agency.id, status_before: agency.negotiation_status, patch }),
       }),
@@ -387,40 +383,32 @@ export async function handleViewSubmission(payload: any): Promise<any> {
     const meta = JSON.parse(view.private_metadata || "{}");
     if (meta.kind === "update") {
       const { agency_id, status_before, patch } = meta;
-      const updates: any = { updated_by: consultant.user_id };
-      if (patch.status) updates.negotiation_status = patch.status;
-      if (patch.stock !== null && !isNaN(patch.stock)) updates.contract_stock = patch.stock;
-      if (patch.guarantor_type) updates.guarantor_type = patch.guarantor_type;
-      if (patch.guarantor !== null) updates.current_guarantor = patch.guarantor;
-      if (patch.offer !== null) updates.current_offer = patch.offer;
-      if (patch.feedback !== null) updates.feedback = patch.feedback;
-      if (patch.next_steps !== null) updates.next_steps = patch.next_steps;
-      if (typeof patch.clevel === "boolean") updates.c_level_support_needed = patch.clevel;
-
-      // 1. agency update (interaction trigger also syncs core fields, but explicit update keeps non-interaction fields)
-      await supabaseAdmin.from("real_estate_agencies").update(updates).eq("id", agency_id);
-      // 2. interaction log (immutable history)
-      await supabaseAdmin.from("agency_interactions").insert({
-        agency_id, created_by: consultant.user_id, created_by_name: consultant.name,
-        interaction_type: "slack", source: "web", // 'slack' não está no enum update_source; usar web
-        feedback: patch.feedback ?? null,
+      const { data: agencyRow } = await supabaseAdmin.from("real_estate_agencies").select("name").eq("id", agency_id).maybeSingle();
+      const { error } = await supabaseAdmin.from("agency_activities").insert({
+        agency_id,
+        agency_name: agencyRow?.name ?? "Imobiliária",
+        activity_type: patch.activity_type,
+        activity_date: new Date().toISOString(),
+        registered_by_user_id: consultant.user_id,
+        registered_by_name: consultant.name,
+        registered_by_email: consultant.email,
+        summary: patch.summary,
+        interaction_result: patch.feedback ?? null,
         next_steps: patch.next_steps ?? null,
-        status_before, status_after: patch.status ?? null,
-        c_level_support_needed: patch.clevel ?? null,
-        current_offer: patch.offer ?? null,
-        contract_stock: patch.stock ?? null,
+        next_step_date: patch.next_step_date ?? null,
+        status_changed: !!patch.status_changed,
+        previous_status: status_before,
+        new_status: patch.status_changed ? patch.status : null,
+        c_level_support_needed: !!patch.clevel,
+        source: "slack",
       });
-      // 3. fetch agency name for summary
-      const { data: agencyRow } = await supabaseAdmin
-        .from("real_estate_agencies")
-        .select("name")
-        .eq("id", agency_id)
-        .maybeSingle();
+      if (error) throw error;
       const summaryLines = [
-        `✅ *Atualização registrada com sucesso.*`,
+        `✅ *Atividade registrada com sucesso.*`,
         `*Imobiliária:* ${agencyRow?.name ?? "—"}`,
-        `*Novo status:* ${patch.status ?? "(mantido)"}`,
-        `*Feedback:* ${patch.feedback ?? "—"}`,
+        `*Etapa:* ${patch.status_changed ? patch.status : "mantida"}`,
+        `*Resumo:* ${patch.summary}`,
+        `*Resultado:* ${patch.feedback ?? "—"}`,
         `*Próximo passo:* ${patch.next_steps ?? "—"}`,
         `*Apoio C-Level:* ${patch.clevel ? "🚨 Sim" : "Não"}`,
       ].join("\n");
