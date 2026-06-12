@@ -31,6 +31,7 @@ import { Route as ApiPublicSlackHealthRouteImport } from './routes/api/public/sl
 import { Route as ApiPublicSlackEventsRouteImport } from './routes/api/public/slack.events'
 import { Route as ApiPublicSlackCronRouteImport } from './routes/api/public/slack.cron'
 import { Route as ApiPublicSlackCommandsRouteImport } from './routes/api/public/slack.commands'
+import { Route as ApiPublicGoogleFormsActivitiesRouteImport } from './routes/api/public/google-forms.activities'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -151,6 +152,12 @@ const ApiPublicSlackCommandsRoute = ApiPublicSlackCommandsRouteImport.update({
   path: '/api/public/slack/commands',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicGoogleFormsActivitiesRoute =
+  ApiPublicGoogleFormsActivitiesRouteImport.update({
+    id: '/api/public/google-forms/activities',
+    path: '/api/public/google-forms/activities',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -168,6 +175,7 @@ export interface FileRoutesByFullPath {
   '/settings/slack': typeof AuthenticatedSettingsSlackRoute
   '/settings/users': typeof AuthenticatedSettingsUsersRoute
   '/portfolio/': typeof AuthenticatedPortfolioIndexRoute
+  '/api/public/google-forms/activities': typeof ApiPublicGoogleFormsActivitiesRoute
   '/api/public/slack/commands': typeof ApiPublicSlackCommandsRoute
   '/api/public/slack/cron': typeof ApiPublicSlackCronRoute
   '/api/public/slack/events': typeof ApiPublicSlackEventsRoute
@@ -190,6 +198,7 @@ export interface FileRoutesByTo {
   '/settings/slack': typeof AuthenticatedSettingsSlackRoute
   '/settings/users': typeof AuthenticatedSettingsUsersRoute
   '/portfolio': typeof AuthenticatedPortfolioIndexRoute
+  '/api/public/google-forms/activities': typeof ApiPublicGoogleFormsActivitiesRoute
   '/api/public/slack/commands': typeof ApiPublicSlackCommandsRoute
   '/api/public/slack/cron': typeof ApiPublicSlackCronRoute
   '/api/public/slack/events': typeof ApiPublicSlackEventsRoute
@@ -215,6 +224,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/slack': typeof AuthenticatedSettingsSlackRoute
   '/_authenticated/settings/users': typeof AuthenticatedSettingsUsersRoute
   '/_authenticated/portfolio/': typeof AuthenticatedPortfolioIndexRoute
+  '/api/public/google-forms/activities': typeof ApiPublicGoogleFormsActivitiesRoute
   '/api/public/slack/commands': typeof ApiPublicSlackCommandsRoute
   '/api/public/slack/cron': typeof ApiPublicSlackCronRoute
   '/api/public/slack/events': typeof ApiPublicSlackEventsRoute
@@ -240,6 +250,7 @@ export interface FileRouteTypes {
     | '/settings/slack'
     | '/settings/users'
     | '/portfolio/'
+    | '/api/public/google-forms/activities'
     | '/api/public/slack/commands'
     | '/api/public/slack/cron'
     | '/api/public/slack/events'
@@ -262,6 +273,7 @@ export interface FileRouteTypes {
     | '/settings/slack'
     | '/settings/users'
     | '/portfolio'
+    | '/api/public/google-forms/activities'
     | '/api/public/slack/commands'
     | '/api/public/slack/cron'
     | '/api/public/slack/events'
@@ -286,6 +298,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/slack'
     | '/_authenticated/settings/users'
     | '/_authenticated/portfolio/'
+    | '/api/public/google-forms/activities'
     | '/api/public/slack/commands'
     | '/api/public/slack/cron'
     | '/api/public/slack/events'
@@ -298,6 +311,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
+  ApiPublicGoogleFormsActivitiesRoute: typeof ApiPublicGoogleFormsActivitiesRoute
   ApiPublicSlackCommandsRoute: typeof ApiPublicSlackCommandsRoute
   ApiPublicSlackCronRoute: typeof ApiPublicSlackCronRoute
   ApiPublicSlackEventsRoute: typeof ApiPublicSlackEventsRoute
@@ -462,6 +476,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicSlackCommandsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/google-forms/activities': {
+      id: '/api/public/google-forms/activities'
+      path: '/api/public/google-forms/activities'
+      fullPath: '/api/public/google-forms/activities'
+      preLoaderRoute: typeof ApiPublicGoogleFormsActivitiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -516,6 +537,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   LoginRoute: LoginRoute,
+  ApiPublicGoogleFormsActivitiesRoute: ApiPublicGoogleFormsActivitiesRoute,
   ApiPublicSlackCommandsRoute: ApiPublicSlackCommandsRoute,
   ApiPublicSlackCronRoute: ApiPublicSlackCronRoute,
   ApiPublicSlackEventsRoute: ApiPublicSlackEventsRoute,
@@ -526,13 +548,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
