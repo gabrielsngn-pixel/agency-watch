@@ -12,6 +12,26 @@ export const NEGOTIATION_STATUSES = [
 
 export type NegotiationStatus = (typeof NEGOTIATION_STATUSES)[number];
 
+export const AGENCY_ACTIVITY_TYPES = [
+  ["call", "Ligação"],
+  ["whatsapp", "WhatsApp"],
+  ["email", "E-mail"],
+  ["meeting", "Reunião"],
+  ["in_person_visit", "Visita presencial"],
+  ["proposal_sent", "Proposta enviada"],
+  ["client_base_received", "Base de clientes recebida"],
+  ["training", "Treinamento"],
+  ["follow_up", "Follow-up"],
+  ["c_level_support", "Apoio C-Level"],
+  ["internal_note", "Observação interna"],
+  ["cadastro_update", "Atualização cadastral"],
+  ["other", "Outro"],
+] as const;
+
+export type AgencyActivityType = (typeof AGENCY_ACTIVITY_TYPES)[number][0];
+
+export const ACTIVITY_TYPE_LABEL = Object.fromEntries(AGENCY_ACTIVITY_TYPES) as Record<AgencyActivityType, string>;
+
 export const GUARANTOR_TYPES = [
   "Garantia Propria",
   "Concorrente",
