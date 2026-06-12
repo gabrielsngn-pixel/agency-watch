@@ -14,6 +14,92 @@ export type Database = {
   }
   public: {
     Tables: {
+      agency_activities: {
+        Row: {
+          activity_date: string
+          activity_type: Database["public"]["Enums"]["agency_activity_type"]
+          agency_id: string
+          agency_name: string
+          attachment_name: string | null
+          attachment_url: string | null
+          c_level_support_needed: boolean
+          created_at: string
+          id: string
+          interaction_result: string | null
+          new_status: Database["public"]["Enums"]["negotiation_status"] | null
+          next_step_date: string | null
+          next_steps: string | null
+          previous_status:
+            | Database["public"]["Enums"]["negotiation_status"]
+            | null
+          registered_by_email: string | null
+          registered_by_name: string | null
+          registered_by_user_id: string | null
+          source: string
+          status_changed: boolean
+          summary: string
+          updated_at: string
+        }
+        Insert: {
+          activity_date?: string
+          activity_type: Database["public"]["Enums"]["agency_activity_type"]
+          agency_id: string
+          agency_name: string
+          attachment_name?: string | null
+          attachment_url?: string | null
+          c_level_support_needed?: boolean
+          created_at?: string
+          id?: string
+          interaction_result?: string | null
+          new_status?: Database["public"]["Enums"]["negotiation_status"] | null
+          next_step_date?: string | null
+          next_steps?: string | null
+          previous_status?:
+            | Database["public"]["Enums"]["negotiation_status"]
+            | null
+          registered_by_email?: string | null
+          registered_by_name?: string | null
+          registered_by_user_id?: string | null
+          source?: string
+          status_changed?: boolean
+          summary: string
+          updated_at?: string
+        }
+        Update: {
+          activity_date?: string
+          activity_type?: Database["public"]["Enums"]["agency_activity_type"]
+          agency_id?: string
+          agency_name?: string
+          attachment_name?: string | null
+          attachment_url?: string | null
+          c_level_support_needed?: boolean
+          created_at?: string
+          id?: string
+          interaction_result?: string | null
+          new_status?: Database["public"]["Enums"]["negotiation_status"] | null
+          next_step_date?: string | null
+          next_steps?: string | null
+          previous_status?:
+            | Database["public"]["Enums"]["negotiation_status"]
+            | null
+          registered_by_email?: string | null
+          registered_by_name?: string | null
+          registered_by_user_id?: string | null
+          source?: string
+          status_changed?: boolean
+          summary?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_activities_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "real_estate_agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agency_change_log: {
         Row: {
           agency_id: string
@@ -206,6 +292,54 @@ export type Database = {
           },
         ]
       }
+      client_base_uploads: {
+        Row: {
+          activity_id: string
+          agency_id: string
+          created_at: string
+          file_name: string
+          file_path: string
+          id: string
+          source: string
+          uploaded_by_user_id: string | null
+        }
+        Insert: {
+          activity_id: string
+          agency_id: string
+          created_at?: string
+          file_name: string
+          file_path: string
+          id?: string
+          source?: string
+          uploaded_by_user_id?: string | null
+        }
+        Update: {
+          activity_id?: string
+          agency_id?: string
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          id?: string
+          source?: string
+          uploaded_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_base_uploads_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: true
+            referencedRelation: "agency_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_base_uploads_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "real_estate_agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_import_history: {
         Row: {
           agency_name: string | null
@@ -391,6 +525,7 @@ export type Database = {
           main_contact: string | null
           name: string
           negotiation_status: Database["public"]["Enums"]["negotiation_status"]
+          next_step_date: string | null
           next_steps: string | null
           regional_director: string | null
           state: string
@@ -415,6 +550,7 @@ export type Database = {
           main_contact?: string | null
           name: string
           negotiation_status?: Database["public"]["Enums"]["negotiation_status"]
+          next_step_date?: string | null
           next_steps?: string | null
           regional_director?: string | null
           state: string
@@ -439,6 +575,7 @@ export type Database = {
           main_contact?: string | null
           name?: string
           negotiation_status?: Database["public"]["Enums"]["negotiation_status"]
+          next_step_date?: string | null
           next_steps?: string | null
           regional_director?: string | null
           state?: string
@@ -666,6 +803,20 @@ export type Database = {
       }
     }
     Enums: {
+      agency_activity_type:
+        | "call"
+        | "whatsapp"
+        | "email"
+        | "meeting"
+        | "in_person_visit"
+        | "proposal_sent"
+        | "client_base_received"
+        | "training"
+        | "follow_up"
+        | "c_level_support"
+        | "internal_note"
+        | "cadastro_update"
+        | "other"
       app_role: "admin" | "manager" | "consultant"
       bot_session_status: "active" | "completed" | "abandoned"
       guarantor_type:
@@ -812,6 +963,21 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      agency_activity_type: [
+        "call",
+        "whatsapp",
+        "email",
+        "meeting",
+        "in_person_visit",
+        "proposal_sent",
+        "client_base_received",
+        "training",
+        "follow_up",
+        "c_level_support",
+        "internal_note",
+        "cadastro_update",
+        "other",
+      ],
       app_role: ["admin", "manager", "consultant"],
       bot_session_status: ["active", "completed", "abandoned"],
       guarantor_type: [
