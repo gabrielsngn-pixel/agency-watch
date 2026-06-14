@@ -37,11 +37,14 @@ export function NewAgencyActivityDialog({ agency, onSaved }: { agency: Agency; o
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Sessão expirada.");
+      const isReceivedBase = form.interaction_result.trim().toLocaleLowerCase("pt-BR") === "base recebida";
       let attachmentUrl: string | null = null;
       if (file) {
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-        attachmentUrl = `${agency.id}/${crypto.randomUUID()}-${safeName}`;
-        const { error: uploadError } = await supabase.storage.from("agency-files").upload(attachmentUrl, file);
+        attachmentUrl = isReceivedBase
+          ? `${agency.id}/${crypto.randomUUID()}-${safeName}`
+          : `${user.id}/activities/${crypto.randomUUID()}-${safeName}`;
+        const { error: uploadError } = await supabase.storage.from(isReceivedBase ? "agency-files" : "client-imports").upload(attachmentUrl, file);
         if (uploadError) throw uploadError;
       }
       const name = String(user.user_metadata?.full_name ?? user.email ?? "Usuário");
@@ -64,7 +67,7 @@ export function NewAgencyActivityDialog({ agency, onSaved }: { agency: Agency; o
         source: "web",
       }).select("id").single();
       if (error) throw error;
-      if (file && attachmentUrl) {
+      if (file && attachmentUrl && isReceivedBase) {
         const { error: fileError } = await supabase.from("agency_files").insert({
           agency_id: agency.id,
           activity_id: activity.id,
@@ -123,7 +126,7 @@ export function NewAgencyActivityDialog({ agency, onSaved }: { agency: Agency; o
 export function AgencyActivityTimeline({ activities }: { activities: any[] }) {
   const download = async (activity: any) => {
     if (!activity.attachment_url) return;
-    const bucket = activity.source === "web" ? "agency-files" : "client-imports";
+    const bucket = activity.interaction_result?.trim().toLocaleLowerCase("pt-BR") === "base recebida" ? "agency-files" : "client-imports";
     const { data, error } = await supabase.storage.from(bucket).createSignedUrl(activity.attachment_url, 60);
     if (error || !data?.signedUrl) return toast.error("Não foi possível abrir o anexo.");
     window.open(data.signedUrl, "_blank", "noopener,noreferrer");
