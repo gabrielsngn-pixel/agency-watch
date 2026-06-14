@@ -669,6 +669,8 @@ export type Database = {
           c_level_support_needed: boolean
           city: string
           consultant_id: string | null
+          contact_email: string | null
+          contact_phone: string | null
           contact_role: string | null
           contract_stock: number
           created_at: string
@@ -684,6 +686,7 @@ export type Database = {
           negotiation_status: Database["public"]["Enums"]["negotiation_status"]
           next_step_date: string | null
           next_steps: string | null
+          perceived_potential: string | null
           regional_director: string | null
           registration_incomplete: boolean
           state: string | null
@@ -695,6 +698,8 @@ export type Database = {
           c_level_support_needed?: boolean
           city: string
           consultant_id?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
           contact_role?: string | null
           contract_stock?: number
           created_at?: string
@@ -710,6 +715,7 @@ export type Database = {
           negotiation_status?: Database["public"]["Enums"]["negotiation_status"]
           next_step_date?: string | null
           next_steps?: string | null
+          perceived_potential?: string | null
           regional_director?: string | null
           registration_incomplete?: boolean
           state?: string | null
@@ -721,6 +727,8 @@ export type Database = {
           c_level_support_needed?: boolean
           city?: string
           consultant_id?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
           contact_role?: string | null
           contract_stock?: number
           created_at?: string
@@ -736,6 +744,7 @@ export type Database = {
           negotiation_status?: Database["public"]["Enums"]["negotiation_status"]
           next_step_date?: string | null
           next_steps?: string | null
+          perceived_potential?: string | null
           regional_director?: string | null
           registration_incomplete?: boolean
           state?: string | null
