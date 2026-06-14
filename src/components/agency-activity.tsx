@@ -125,6 +125,8 @@ export function AgencyActivityTimeline({ activities }: { activities: any[] }) {
         {activity.interaction_result && <p><b className="text-foreground/80">Resultado:</b> {activity.interaction_result}</p>}
         {activity.next_steps && <p><b className="text-foreground/80">Próximo passo:</b> {activity.next_steps}{activity.next_step_date ? ` · ${new Date(`${activity.next_step_date}T12:00:00`).toLocaleDateString("pt-BR")}` : ""}</p>}
         {activity.status_changed && <p className="flex items-center gap-1.5"><b className="text-foreground/80">Etapa:</b> {activity.previous_status} → {activity.new_status}</p>}
+        {activity.base_origin && <p><b className="text-foreground/80">Origem da base:</b> {activity.base_origin}</p>}
+        {activity.notes && <p><b className="text-foreground/80">Observações:</b> {activity.notes}</p>}
         <p className="text-xs">Registrado por {activity.registered_by_name || activity.registered_by_email || "—"} · origem {activity.source}</p>
       </div>
       {activity.attachment_url && <Button variant="outline" size="sm" className="mt-3" onClick={() => download(activity)}><Download className="h-3.5 w-3.5 mr-1.5" /> {activity.attachment_name || "Abrir anexo"}</Button>}
