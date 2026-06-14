@@ -79,7 +79,7 @@ function AgencyDetailPage() {
     <div>
       <PageHeader
         title={agency.name}
-        description={`${agency.city} · ${agency.state}`}
+        description={`${agency.city}${agency.state ? ` · ${agency.state}` : " · Cadastro incompleto"}`}
         actions={
           <div className="flex gap-2">
             <Button asChild variant="ghost"><Link to="/portfolio"><ArrowLeft className="h-4 w-4 mr-1" /> Voltar</Link></Button>
@@ -199,7 +199,7 @@ function EditAgencyDialog({ agency, onSaved, triggerLabel, triggerVariant }: { a
   const [form, setForm] = useState({
     name: agency.name ?? "",
     city: agency.city ?? "",
-    state: agency.state ?? "SP",
+    state: agency.state ?? "",
     negotiation_status: agency.negotiation_status,
     main_contact: agency.main_contact ?? "",
     contact_role: agency.contact_role ?? "",
@@ -216,8 +216,8 @@ function EditAgencyDialog({ agency, onSaved, triggerLabel, triggerVariant }: { a
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
 
   const submit = async () => {
-    if (!form.name || !form.city || !form.state) {
-      toast.error("Nome, cidade e UF são obrigatórios");
+    if (!form.name || !form.city) {
+      toast.error("Nome e cidade são obrigatórios");
       return;
     }
     setSaving(true);
@@ -225,6 +225,8 @@ function EditAgencyDialog({ agency, onSaved, triggerLabel, triggerVariant }: { a
       const { data: { user } } = await supabase.auth.getUser();
       const payload: any = {
         ...form,
+        state: form.state || null,
+        registration_incomplete: !form.state,
         guarantor_type: form.guarantor_type || null,
         consultant_id: form.consultant_id || null,
         updated_by: user?.id,
@@ -257,10 +259,10 @@ function EditAgencyDialog({ agency, onSaved, triggerLabel, triggerVariant }: { a
             </Select>
           </EField>
           <EField label="Cidade *"><Input value={form.city} onChange={(e) => set("city", e.target.value)} /></EField>
-          <EField label="UF *">
-            <Select value={form.state} onValueChange={(v) => set("state", v)}>
+          <EField label="UF (opcional)">
+            <Select value={form.state || "none"} onValueChange={(v) => set("state", v === "none" ? "" : v)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{BR_STATES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+              <SelectContent><SelectItem value="none">— Enriquecer depois —</SelectItem>{BR_STATES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
             </Select>
           </EField>
           <EField label="Contato principal"><Input value={form.main_contact} onChange={(e) => set("main_contact", e.target.value)} /></EField>

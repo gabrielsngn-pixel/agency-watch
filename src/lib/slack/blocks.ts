@@ -27,13 +27,13 @@ export function homeMenu() {
 
 
 export function pickAgencyView(args: {
-  agencies: Array<{ id: string; name: string; city: string; state: string }>;
+  agencies: Array<{ id: string; name: string; city: string; state: string | null }>;
   flow: "atualizar" | "interacao" | "clevel";
   title: string;
   submitLabel: string;
 }) {
   const opts = args.agencies.slice(0, 100).map((a) =>
-    option(a.id, `${a.name} — ${a.city}/${a.state}`.slice(0, 75)),
+    option(a.id, `${a.name} — ${a.city}${a.state ? `/${a.state}` : ""}`.slice(0, 75)),
   );
   return {
     type: "modal",
@@ -260,10 +260,10 @@ export function newAgencyView(args?: {
 }
 
 export function clevelView(args: {
-  agencies: Array<{ id: string; name: string; city: string; state: string }>;
+  agencies: Array<{ id: string; name: string; city: string; state: string | null }>;
 }) {
   const opts = args.agencies.slice(0, 100).map((a) =>
-    option(a.id, `${a.name} — ${a.city}/${a.state}`.slice(0, 75)),
+    option(a.id, `${a.name} — ${a.city}${a.state ? `/${a.state}` : ""}`.slice(0, 75)),
   );
   const urgencyOpts = [
     option("alta", "🔴 Alta"),

@@ -20,6 +20,7 @@ export function NewAgencyActivityDialog({ agency, onSaved }: { agency: Agency; o
   const [file, setFile] = useState<File | null>(null);
   const [form, setForm] = useState({
     activity_type: "follow_up" as AgencyActivityType,
+    activity_type_detail: "",
     summary: "",
     interaction_result: "",
     next_steps: "",
@@ -32,6 +33,7 @@ export function NewAgencyActivityDialog({ agency, onSaved }: { agency: Agency; o
 
   const submit = async () => {
     if (!form.summary.trim()) return toast.error("Descreva o resumo da atividade.");
+    if (form.activity_type === "other" && !form.activity_type_detail.trim()) return toast.error("Descreva o tipo de atividade escolhido como Outro.");
     if (form.status_changed && form.new_status === agency.negotiation_status) return toast.error("Selecione uma nova etapa diferente da atual.");
     setSaving(true);
     try {
@@ -52,6 +54,7 @@ export function NewAgencyActivityDialog({ agency, onSaved }: { agency: Agency; o
         agency_id: agency.id,
         agency_name: agency.name,
         activity_type: form.activity_type,
+        activity_type_detail: form.activity_type === "other" ? form.activity_type_detail.trim() : null,
         registered_by_user_id: user.id,
         registered_by_name: name,
         registered_by_email: user.email ?? null,
@@ -85,7 +88,7 @@ export function NewAgencyActivityDialog({ agency, onSaved }: { agency: Agency; o
       toast.success("Atividade registrada na timeline.");
       setOpen(false);
       setFile(null);
-      setForm((current) => ({ ...current, summary: "", interaction_result: "", next_steps: "", next_step_date: "", status_changed: false, c_level_support_needed: false }));
+      setForm((current) => ({ ...current, activity_type_detail: "", summary: "", interaction_result: "", next_steps: "", next_step_date: "", status_changed: false, c_level_support_needed: false }));
       onSaved();
     } catch (error: any) {
       toast.error(error?.message ?? "Não foi possível registrar a atividade.");
@@ -106,6 +109,7 @@ export function NewAgencyActivityDialog({ agency, onSaved }: { agency: Agency; o
               <SelectContent>{AGENCY_ACTIVITY_TYPES.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
             </Select>
           </Field>
+          {form.activity_type === "other" && <Field label="Descreva o tipo de atividade *"><Input value={form.activity_type_detail} onChange={(event) => set("activity_type_detail", event.target.value)} maxLength={500} /></Field>}
           <Field label="Data da próxima ação"><Input type="date" value={form.next_step_date} onChange={(event) => set("next_step_date", event.target.value)} /></Field>
           <Field label="Resumo da atividade *" full><Textarea rows={3} value={form.summary} onChange={(event) => set("summary", event.target.value)} placeholder="O que aconteceu com esta imobiliária?" /></Field>
           <Field label="Resultado da interação" full><Textarea rows={2} value={form.interaction_result} onChange={(event) => set("interaction_result", event.target.value)} /></Field>
@@ -141,7 +145,8 @@ export function AgencyActivityTimeline({ activities }: { activities: any[] }) {
       </div>
       <h3 className="font-medium mt-3">{activity.summary}</h3>
       <div className="mt-2 grid gap-1.5 text-sm text-muted-foreground">
-        {activity.interaction_result && <p><b className="text-foreground/80">Resultado:</b> {activity.interaction_result}</p>}
+        {activity.activity_type_detail && <p><b className="text-foreground/80">Tipo:</b> {activity.activity_type_detail}</p>}
+        {activity.interaction_result && <p><b className="text-foreground/80">Resultado:</b> {activity.interaction_result}{activity.interaction_result_detail ? ` — ${activity.interaction_result_detail}` : ""}</p>}
         {activity.next_steps && <p><b className="text-foreground/80">Próximo passo:</b> {activity.next_steps}{activity.next_step_date ? ` · ${new Date(`${activity.next_step_date}T12:00:00`).toLocaleDateString("pt-BR")}` : ""}</p>}
         {activity.status_changed && <p className="flex items-center gap-1.5"><b className="text-foreground/80">Etapa:</b> {activity.previous_status} → {activity.new_status}</p>}
         {activity.base_origin && <p><b className="text-foreground/80">Origem da base:</b> {activity.base_origin}</p>}

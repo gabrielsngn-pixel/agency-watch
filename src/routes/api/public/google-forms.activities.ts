@@ -7,20 +7,30 @@ const payloadSchema = z.object({
   consultant_email: z.string().email().max(320),
   agency: z.string().min(1).max(200).optional(),
   agency_name: z.string().min(1).max(200).optional(),
+  agency_id: z.string().uuid().optional(),
   city: z.string().max(120).optional(),
   state: z.string().max(2).optional(),
+  main_contact: z.string().max(200).nullish(),
+  contact_role: z.string().max(100).nullish(),
+  contact_phone: z.string().max(40).nullish(),
+  contact_email: z.string().email().max(320).nullish(),
+  current_guarantor: z.string().max(120).nullish(),
+  current_guarantor_detail: z.string().max(500).nullish(),
+  perceived_potential: z.string().max(100).nullish(),
   activity_type: z.enum(AGENCY_ACTIVITY_TYPES.map(([value]) => value) as [string, ...string[]]),
+  activity_type_detail: z.string().max(500).nullish(),
   summary: z.string().min(1).max(5000).optional(),
   activity_summary: z.string().min(1).max(5000).optional(),
   interaction_result: z.string().max(5000).nullish(),
+  interaction_result_detail: z.string().max(500).nullish(),
   next_steps: z.string().max(5000).nullish(),
   next_step: z.string().max(5000).nullish(),
   next_step_date: z.string().date().nullish(),
   status_changed: z.boolean().default(false),
   kanban_changed: z.boolean().optional(),
   new_status: z.enum(NEGOTIATION_STATUSES).nullish(),
-  c_level_support_needed: z.boolean().default(false),
-  support_c_level: z.boolean().optional(),
+  previous_status: z.enum(NEGOTIATION_STATUSES).nullish(),
+  c_level_support_needed: z.boolean(),
   attachment_url: z.string().url().max(2000).nullish(),
   uploaded_file_url: z.string().url().max(2000).nullish(),
   uploaded_file_base64: z.string().max(28_000_000).nullish(),
@@ -29,8 +39,11 @@ const payloadSchema = z.object({
   base_origin: z.string().max(500).nullish(),
   notes: z.string().max(5000).nullish(),
 }).superRefine((value, context) => {
-  if (!value.agency && !value.agency_name) context.addIssue({ code: "custom", message: "agency_name_required" });
+  if (!value.agency_id && !value.agency && !value.agency_name) context.addIssue({ code: "custom", message: "agency_required" });
   if (!value.summary && !value.activity_summary) context.addIssue({ code: "custom", message: "activity_summary_required" });
+  if (value.activity_type === "other" && !value.activity_type_detail?.trim()) context.addIssue({ code: "custom", message: "activity_type_detail_required" });
+  if (value.interaction_result?.trim().toLocaleLowerCase("pt-BR") === "outro" && !value.interaction_result_detail?.trim()) context.addIssue({ code: "custom", message: "interaction_result_detail_required" });
+  if (value.current_guarantor?.trim().toLocaleLowerCase("pt-BR") === "outro" && !value.current_guarantor_detail?.trim()) context.addIssue({ code: "custom", message: "current_guarantor_detail_required" });
 });
 
 function secureEqual(received: string, expected: string) {
@@ -62,8 +75,8 @@ export const Route = createFileRoute("/api/public/google-forms/activities")({
         const agencyName = (input.agency_name ?? input.agency ?? "").trim();
         const summary = (input.activity_summary ?? input.summary ?? "").trim();
         const statusChanged = input.kanban_changed ?? input.status_changed;
-        if (statusChanged && !input.new_status) {
-          return Response.json({ ok: false, error: "new_status_required" }, { status: 400 });
+        if (statusChanged && (!input.previous_status || !input.new_status)) {
+          return Response.json({ ok: false, error: "kanban_statuses_required" }, { status: 400 });
         }
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -74,11 +87,12 @@ export const Route = createFileRoute("/api/public/google-forms/activities")({
           .eq("active", true)
           .maybeSingle();
 
-        const { data: existingAgency } = await supabaseAdmin
+        const agencyQuery = supabaseAdmin
           .from("real_estate_agencies")
-          .select("id, name, negotiation_status, consultant_id")
-          .ilike("name", agencyName)
-          .maybeSingle();
+          .select("id, name, negotiation_status, consultant_id");
+        const { data: existingAgency } = input.agency_id
+          ? await agencyQuery.eq("id", input.agency_id).maybeSingle()
+          : await agencyQuery.ilike("name", agencyName).maybeSingle();
 
         let agency = existingAgency;
         if (!agency) {
@@ -87,7 +101,16 @@ export const Route = createFileRoute("/api/public/google-forms/activities")({
             .insert({
               name: agencyName,
               city: input.city?.trim() || "Não informado",
-              state: input.state?.trim().toUpperCase() || "NI",
+              state: input.state?.trim().toUpperCase() || null,
+              registration_incomplete: !input.state?.trim(),
+              main_contact: input.main_contact?.trim() || null,
+              contact_role: input.contact_role?.trim() || null,
+              contact_phone: input.contact_phone?.trim() || null,
+              contact_email: input.contact_email?.trim() || null,
+              current_guarantor: input.current_guarantor?.trim().toLocaleLowerCase("pt-BR") === "outro"
+                ? input.current_guarantor_detail?.trim()
+                : input.current_guarantor?.trim() || null,
+              perceived_potential: input.perceived_potential?.trim() || null,
               consultant_id: consultant?.id ?? null,
               created_by: consultant?.user_id ?? null,
               updated_by: consultant?.user_id ?? null,
@@ -108,6 +131,9 @@ export const Route = createFileRoute("/api/public/google-forms/activities")({
         if (!agency) {
           return Response.json({ ok: false, error: "agency_create_failed" }, { status: 500 });
         }
+        if (statusChanged && input.previous_status !== agency.negotiation_status) {
+          return Response.json({ ok: false, error: "stale_previous_status" }, { status: 409 });
+        }
         if (statusChanged && input.new_status === agency.negotiation_status) {
           return Response.json({ ok: false, error: "status_unchanged" }, { status: 400 });
         }
@@ -115,6 +141,9 @@ export const Route = createFileRoute("/api/public/google-forms/activities")({
         const isReceivedBase = (input.interaction_result ?? "").trim().toLocaleLowerCase("pt-BR") === "base recebida";
         const remoteFileUrl = input.uploaded_file_url ?? input.attachment_url;
         const originalFileName = input.uploaded_file_name ?? input.attachment_name;
+        if (isReceivedBase && !(remoteFileUrl || input.uploaded_file_base64)) {
+          return Response.json({ ok: false, error: "attachment_required" }, { status: 400 });
+        }
         let storedFilePath: string | null = null;
         let storedFileType: string | null = null;
         let storedFileSize: number | null = null;
@@ -152,17 +181,19 @@ export const Route = createFileRoute("/api/public/google-forms/activities")({
           agency_id: agency.id,
           agency_name: agency.name,
           activity_type: input.activity_type as AgencyActivityType,
+          activity_type_detail: input.activity_type_detail?.trim() || null,
           registered_by_user_id: consultant?.user_id ?? null,
           registered_by_name: consultant?.name ?? null,
           registered_by_email: input.consultant_email,
           summary,
           interaction_result: input.interaction_result ?? null,
+          interaction_result_detail: input.interaction_result_detail?.trim() || null,
           next_steps: input.next_step ?? input.next_steps ?? null,
           next_step_date: input.next_step_date ?? null,
           status_changed: statusChanged,
           previous_status: agency.negotiation_status,
           new_status: statusChanged ? input.new_status ?? null : null,
-          c_level_support_needed: input.support_c_level ?? input.c_level_support_needed,
+          c_level_support_needed: input.c_level_support_needed,
           attachment_url: storedFilePath ?? input.uploaded_file_url ?? input.attachment_url ?? null,
           attachment_name: input.uploaded_file_name ?? input.attachment_name ?? null,
           base_origin: input.base_origin ?? null,
