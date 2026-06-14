@@ -87,11 +87,12 @@ export const Route = createFileRoute("/api/public/google-forms/activities")({
           .eq("active", true)
           .maybeSingle();
 
-        const { data: existingAgency } = await supabaseAdmin
+        const agencyQuery = supabaseAdmin
           .from("real_estate_agencies")
-          .select("id, name, negotiation_status, consultant_id")
-          .or(input.agency_id ? `id.eq.${input.agency_id}` : `name.ilike.${agencyName.replace(/[,%()]/g, "")}`)
-          .maybeSingle();
+          .select("id, name, negotiation_status, consultant_id");
+        const { data: existingAgency } = input.agency_id
+          ? await agencyQuery.eq("id", input.agency_id).maybeSingle()
+          : await agencyQuery.ilike("name", agencyName).maybeSingle();
 
         let agency = existingAgency;
         if (!agency) {
