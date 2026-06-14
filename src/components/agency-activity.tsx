@@ -40,12 +40,12 @@ export function NewAgencyActivityDialog({ agency, onSaved }: { agency: Agency; o
       let attachmentUrl: string | null = null;
       if (file) {
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-        attachmentUrl = `${user.id}/activities/${crypto.randomUUID()}-${safeName}`;
-        const { error: uploadError } = await supabase.storage.from("client-imports").upload(attachmentUrl, file);
+        attachmentUrl = `${agency.id}/${crypto.randomUUID()}-${safeName}`;
+        const { error: uploadError } = await supabase.storage.from("agency-files").upload(attachmentUrl, file);
         if (uploadError) throw uploadError;
       }
       const name = String(user.user_metadata?.full_name ?? user.email ?? "Usuário");
-      const { error } = await supabase.from("agency_activities").insert({
+      const { data: activity, error } = await supabase.from("agency_activities").insert({
         agency_id: agency.id,
         agency_name: agency.name,
         activity_type: form.activity_type,
@@ -62,8 +62,23 @@ export function NewAgencyActivityDialog({ agency, onSaved }: { agency: Agency; o
         attachment_url: attachmentUrl,
         attachment_name: file?.name ?? null,
         source: "web",
-      });
+      }).select("id").single();
       if (error) throw error;
+      if (file && attachmentUrl) {
+        const { error: fileError } = await supabase.from("agency_files").insert({
+          agency_id: agency.id,
+          activity_id: activity.id,
+          uploaded_by: user.id,
+          uploaded_by_name: name,
+          uploaded_by_email: user.email ?? null,
+          file_name: file.name,
+          file_url: attachmentUrl,
+          file_type: file.type || null,
+          file_size: file.size,
+          processing_status: "pending",
+        });
+        if (fileError) throw fileError;
+      }
       toast.success("Atividade registrada na timeline.");
       setOpen(false);
       setFile(null);
@@ -108,7 +123,8 @@ export function NewAgencyActivityDialog({ agency, onSaved }: { agency: Agency; o
 export function AgencyActivityTimeline({ activities }: { activities: any[] }) {
   const download = async (activity: any) => {
     if (!activity.attachment_url) return;
-    const { data, error } = await supabase.storage.from("client-imports").createSignedUrl(activity.attachment_url, 60);
+    const bucket = activity.source === "web" ? "agency-files" : "client-imports";
+    const { data, error } = await supabase.storage.from(bucket).createSignedUrl(activity.attachment_url, 60);
     if (error || !data?.signedUrl) return toast.error("Não foi possível abrir o anexo.");
     window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   };
