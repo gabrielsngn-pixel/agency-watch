@@ -23,6 +23,7 @@ const payloadSchema = z.object({
   support_c_level: z.boolean().optional(),
   attachment_url: z.string().url().max(2000).nullish(),
   uploaded_file_url: z.string().url().max(2000).nullish(),
+  uploaded_file_base64: z.string().max(28_000_000).nullish(),
   attachment_name: z.string().max(255).nullish(),
   uploaded_file_name: z.string().max(255).nullish(),
   base_origin: z.string().max(500).nullish(),
@@ -36,6 +37,10 @@ function secureEqual(received: string, expected: string) {
   const a = Buffer.from(received);
   const b = Buffer.from(expected);
   return a.length === b.length && timingSafeEqual(a, b);
+}
+
+function safeFileName(value: string) {
+  return value.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 180) || "base-recebida";
 }
 
 export const Route = createFileRoute("/api/public/google-forms/activities")({
@@ -107,6 +112,42 @@ export const Route = createFileRoute("/api/public/google-forms/activities")({
           return Response.json({ ok: false, error: "status_unchanged" }, { status: 400 });
         }
 
+        const isReceivedBase = (input.interaction_result ?? "").trim().toLocaleLowerCase("pt-BR") === "base recebida";
+        const remoteFileUrl = input.uploaded_file_url ?? input.attachment_url;
+        const originalFileName = input.uploaded_file_name ?? input.attachment_name;
+        let storedFilePath: string | null = null;
+        let storedFileType: string | null = null;
+        let storedFileSize: number | null = null;
+
+        if (isReceivedBase && (remoteFileUrl || input.uploaded_file_base64)) {
+          let fileBytes: Uint8Array;
+          if (input.uploaded_file_base64) {
+            fileBytes = Uint8Array.from(Buffer.from(input.uploaded_file_base64, "base64"));
+          } else {
+            const fileResponse = await fetch(remoteFileUrl ?? "", { redirect: "follow" });
+            if (!fileResponse.ok) {
+              return Response.json({ ok: false, error: "attachment_download_failed" }, { status: 502 });
+            }
+            fileBytes = new Uint8Array(await fileResponse.arrayBuffer());
+            storedFileType = fileResponse.headers.get("content-type")?.split(";")[0] ?? null;
+          }
+          if (fileBytes.byteLength > 20 * 1024 * 1024) {
+            return Response.json({ ok: false, error: "attachment_too_large" }, { status: 413 });
+          }
+          const fallbackName = remoteFileUrl ? new URL(remoteFileUrl).pathname.split("/").pop() : null;
+          const fileName = safeFileName(originalFileName ?? fallbackName ?? "base-recebida");
+          storedFilePath = `${agency.id}/${crypto.randomUUID()}-${fileName}`;
+          storedFileSize = fileBytes.byteLength;
+          const { error: uploadError } = await supabaseAdmin.storage.from("agency-files").upload(storedFilePath, fileBytes, {
+            contentType: storedFileType ?? "application/octet-stream",
+            upsert: false,
+          });
+          if (uploadError) {
+            console.error("[google-forms.activities] file upload failed", uploadError.message);
+            return Response.json({ ok: false, error: "attachment_save_failed" }, { status: 500 });
+          }
+        }
+
         const { data: activity, error } = await supabaseAdmin.from("agency_activities").insert({
           agency_id: agency.id,
           agency_name: agency.name,
@@ -122,15 +163,35 @@ export const Route = createFileRoute("/api/public/google-forms/activities")({
           previous_status: agency.negotiation_status,
           new_status: statusChanged ? input.new_status ?? null : null,
           c_level_support_needed: input.support_c_level ?? input.c_level_support_needed,
-          attachment_url: input.uploaded_file_url ?? input.attachment_url ?? null,
+          attachment_url: storedFilePath ?? input.uploaded_file_url ?? input.attachment_url ?? null,
           attachment_name: input.uploaded_file_name ?? input.attachment_name ?? null,
           base_origin: input.base_origin ?? null,
           notes: input.notes ?? null,
           source: "google_forms",
         }).select("id").single();
         if (error) {
+          if (storedFilePath) await supabaseAdmin.storage.from("agency-files").remove([storedFilePath]);
           console.error("[google-forms.activities] insert failed", error.message);
           return Response.json({ ok: false, error: "save_failed" }, { status: 500 });
+        }
+        if (storedFilePath) {
+          const { error: fileRecordError } = await supabaseAdmin.from("agency_files").insert({
+            agency_id: agency.id,
+            activity_id: activity.id,
+            uploaded_by: consultant?.user_id ?? null,
+            uploaded_by_name: consultant?.name ?? null,
+            uploaded_by_email: input.consultant_email,
+            file_name: originalFileName ?? storedFilePath.split("/").pop() ?? "base-recebida",
+            file_url: storedFilePath,
+            file_type: storedFileType,
+            file_size: storedFileSize,
+            processing_status: "pending",
+          });
+          if (fileRecordError) {
+            await supabaseAdmin.storage.from("agency-files").remove([storedFilePath]);
+            console.error("[google-forms.activities] file record failed", fileRecordError.message);
+            return Response.json({ ok: false, error: "attachment_record_failed" }, { status: 500 });
+          }
         }
         return Response.json({ ok: true, activity_id: activity.id, agency_id: agency.id });
       },
