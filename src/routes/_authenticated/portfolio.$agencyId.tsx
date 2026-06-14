@@ -12,12 +12,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { ArrowLeft, User, Shield, Pencil, Trash2 } from "lucide-react";
 import { NEGOTIATION_STATUSES, BR_STATES, GUARANTOR_TYPES, daysSince } from "@/lib/constants";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { AgencyActivityTimeline, NewAgencyActivityDialog } from "@/components/agency-activity";
+import { AgencyFilesList } from "@/components/agency-files";
 
 export const Route = createFileRoute("/_authenticated/portfolio/$agencyId")({
   component: AgencyDetailPage,
@@ -55,6 +57,19 @@ function AgencyDetailPage() {
     },
   });
 
+  const { data: agencyFiles = [] } = useQuery({
+    queryKey: ["agency-files", agencyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("agency_files")
+        .select("*")
+        .eq("agency_id", agencyId)
+        .order("uploaded_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   if (isLoading) return <div className="p-10 text-muted-foreground">Carregando…</div>;
   if (!agency) return <div className="p-10">Imobiliária não encontrada.</div>;
 
@@ -81,6 +96,7 @@ function AgencyDetailPage() {
             <NewAgencyActivityDialog agency={agency} onSaved={() => {
               qc.invalidateQueries({ queryKey: ["agency", agencyId] });
               qc.invalidateQueries({ queryKey: ["agency-activities", agencyId] });
+              qc.invalidateQueries({ queryKey: ["agency-files", agencyId] });
               qc.invalidateQueries({ queryKey: ["agencies-list"] });
               qc.invalidateQueries({ queryKey: ["agencies-all"] });
               qc.invalidateQueries({ queryKey: ["activities-all"] });
@@ -141,8 +157,20 @@ function AgencyDetailPage() {
         </div>
 
         <Card className="lg:col-span-1 h-fit">
-          <CardHeader><CardTitle className="text-base">Timeline de Atividades ({activities.length})</CardTitle></CardHeader>
-          <CardContent><AgencyActivityTimeline activities={activities} /></CardContent>
+          <CardContent className="pt-6">
+            <Tabs defaultValue="activities">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="activities">Atividades ({activities.length})</TabsTrigger>
+                <TabsTrigger value="files">Bases Recebidas ({agencyFiles.length})</TabsTrigger>
+              </TabsList>
+              <TabsContent value="activities" className="mt-5">
+                <AgencyActivityTimeline activities={activities} />
+              </TabsContent>
+              <TabsContent value="files" className="mt-5">
+                <AgencyFilesList files={agencyFiles} />
+              </TabsContent>
+            </Tabs>
+          </CardContent>
         </Card>
       </div>
     </div>

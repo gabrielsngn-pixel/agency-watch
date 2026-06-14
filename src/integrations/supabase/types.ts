@@ -166,6 +166,72 @@ export type Database = {
         }
         Relationships: []
       }
+      agency_files: {
+        Row: {
+          activity_id: string | null
+          agency_id: string
+          created_at: string
+          file_name: string
+          file_size: number | null
+          file_type: string | null
+          file_url: string
+          id: string
+          processing_status: Database["public"]["Enums"]["agency_file_processing_status"]
+          updated_at: string
+          uploaded_at: string
+          uploaded_by: string | null
+          uploaded_by_email: string | null
+          uploaded_by_name: string | null
+        }
+        Insert: {
+          activity_id?: string | null
+          agency_id: string
+          created_at?: string
+          file_name: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url: string
+          id?: string
+          processing_status?: Database["public"]["Enums"]["agency_file_processing_status"]
+          updated_at?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+          uploaded_by_email?: string | null
+          uploaded_by_name?: string | null
+        }
+        Update: {
+          activity_id?: string | null
+          agency_id?: string
+          created_at?: string
+          file_name?: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string
+          id?: string
+          processing_status?: Database["public"]["Enums"]["agency_file_processing_status"]
+          updated_at?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+          uploaded_by_email?: string | null
+          uploaded_by_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_files_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "agency_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_files_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "real_estate_agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agency_interactions: {
         Row: {
           agency_id: string
@@ -823,6 +889,11 @@ export type Database = {
         | "internal_note"
         | "cadastro_update"
         | "other"
+      agency_file_processing_status:
+        | "pending"
+        | "processing"
+        | "processed"
+        | "failed"
       app_role: "admin" | "manager" | "consultant"
       bot_session_status: "active" | "completed" | "abandoned"
       guarantor_type:
@@ -983,6 +1054,12 @@ export const Constants = {
         "internal_note",
         "cadastro_update",
         "other",
+      ],
+      agency_file_processing_status: [
+        "pending",
+        "processing",
+        "processed",
+        "failed",
       ],
       app_role: ["admin", "manager", "consultant"],
       bot_session_status: ["active", "completed", "abandoned"],
