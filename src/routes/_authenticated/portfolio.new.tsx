@@ -23,7 +23,7 @@ function NewAgencyPage() {
   const [form, setForm] = useState({
     name: "",
     city: "",
-    state: "SP",
+    state: "",
     negotiation_status: "Pipeline de Prospecção",
     main_contact: "",
     contact_role: "",
@@ -50,8 +50,8 @@ function NewAgencyPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.city || !form.state) {
-      toast.error("Nome, cidade e UF são obrigatórios");
+    if (!form.name || !form.city) {
+      toast.error("Nome e cidade são obrigatórios");
       return;
     }
     setSaving(true);
@@ -59,6 +59,8 @@ function NewAgencyPage() {
       const { data: { user } } = await supabase.auth.getUser();
       const payload: any = {
         ...form,
+        state: form.state || null,
+        registration_incomplete: !form.state,
         guarantor_type: form.guarantor_type || null,
         consultant_id: form.consultant_id || null,
         created_by: user?.id,
@@ -89,10 +91,10 @@ function NewAgencyPage() {
               </Select>
             </Field>
             <Field label="Cidade *"><Input value={form.city} onChange={(e) => set("city", e.target.value)} /></Field>
-            <Field label="UF *">
-              <Select value={form.state} onValueChange={(v) => set("state", v)}>
+            <Field label="UF (opcional)">
+              <Select value={form.state || "none"} onValueChange={(v) => set("state", v === "none" ? "" : v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{BR_STATES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                <SelectContent><SelectItem value="none">— Enriquecer depois —</SelectItem>{BR_STATES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
               </Select>
             </Field>
             <Field label="Contato principal"><Input value={form.main_contact} onChange={(e) => set("main_contact", e.target.value)} /></Field>
