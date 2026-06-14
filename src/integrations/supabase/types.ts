@@ -22,6 +22,7 @@ export type Database = {
           agency_name: string
           attachment_name: string | null
           attachment_url: string | null
+          base_origin: string | null
           c_level_support_needed: boolean
           created_at: string
           id: string
@@ -29,6 +30,7 @@ export type Database = {
           new_status: Database["public"]["Enums"]["negotiation_status"] | null
           next_step_date: string | null
           next_steps: string | null
+          notes: string | null
           previous_status:
             | Database["public"]["Enums"]["negotiation_status"]
             | null
@@ -47,6 +49,7 @@ export type Database = {
           agency_name: string
           attachment_name?: string | null
           attachment_url?: string | null
+          base_origin?: string | null
           c_level_support_needed?: boolean
           created_at?: string
           id?: string
@@ -54,6 +57,7 @@ export type Database = {
           new_status?: Database["public"]["Enums"]["negotiation_status"] | null
           next_step_date?: string | null
           next_steps?: string | null
+          notes?: string | null
           previous_status?:
             | Database["public"]["Enums"]["negotiation_status"]
             | null
@@ -72,6 +76,7 @@ export type Database = {
           agency_name?: string
           attachment_name?: string | null
           attachment_url?: string | null
+          base_origin?: string | null
           c_level_support_needed?: boolean
           created_at?: string
           id?: string
@@ -79,6 +84,7 @@ export type Database = {
           new_status?: Database["public"]["Enums"]["negotiation_status"] | null
           next_step_date?: string | null
           next_steps?: string | null
+          notes?: string | null
           previous_status?:
             | Database["public"]["Enums"]["negotiation_status"]
             | null
