@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           activity_date: string
           activity_type: Database["public"]["Enums"]["agency_activity_type"]
+          activity_type_detail: string | null
           agency_id: string
           agency_name: string
           attachment_name: string | null
@@ -27,6 +28,7 @@ export type Database = {
           created_at: string
           id: string
           interaction_result: string | null
+          interaction_result_detail: string | null
           new_status: Database["public"]["Enums"]["negotiation_status"] | null
           next_step_date: string | null
           next_steps: string | null
@@ -45,6 +47,7 @@ export type Database = {
         Insert: {
           activity_date?: string
           activity_type: Database["public"]["Enums"]["agency_activity_type"]
+          activity_type_detail?: string | null
           agency_id: string
           agency_name: string
           attachment_name?: string | null
@@ -54,6 +57,7 @@ export type Database = {
           created_at?: string
           id?: string
           interaction_result?: string | null
+          interaction_result_detail?: string | null
           new_status?: Database["public"]["Enums"]["negotiation_status"] | null
           next_step_date?: string | null
           next_steps?: string | null
@@ -72,6 +76,7 @@ export type Database = {
         Update: {
           activity_date?: string
           activity_type?: Database["public"]["Enums"]["agency_activity_type"]
+          activity_type_detail?: string | null
           agency_id?: string
           agency_name?: string
           attachment_name?: string | null
@@ -81,6 +86,7 @@ export type Database = {
           created_at?: string
           id?: string
           interaction_result?: string | null
+          interaction_result_detail?: string | null
           new_status?: Database["public"]["Enums"]["negotiation_status"] | null
           next_step_date?: string | null
           next_steps?: string | null
@@ -102,6 +108,85 @@ export type Database = {
             columns: ["agency_id"]
             isOneToOne: false
             referencedRelation: "real_estate_agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agency_audit_events: {
+        Row: {
+          activity_id: string | null
+          actor_email: string | null
+          actor_name: string | null
+          actor_user_id: string | null
+          agency_id: string
+          created_at: string
+          event_data: Json
+          event_type: string
+          file_id: string | null
+          id: string
+          new_status: Database["public"]["Enums"]["negotiation_status"] | null
+          occurred_at: string
+          previous_status:
+            | Database["public"]["Enums"]["negotiation_status"]
+            | null
+          source: string
+        }
+        Insert: {
+          activity_id?: string | null
+          actor_email?: string | null
+          actor_name?: string | null
+          actor_user_id?: string | null
+          agency_id: string
+          created_at?: string
+          event_data?: Json
+          event_type: string
+          file_id?: string | null
+          id?: string
+          new_status?: Database["public"]["Enums"]["negotiation_status"] | null
+          occurred_at?: string
+          previous_status?:
+            | Database["public"]["Enums"]["negotiation_status"]
+            | null
+          source?: string
+        }
+        Update: {
+          activity_id?: string | null
+          actor_email?: string | null
+          actor_name?: string | null
+          actor_user_id?: string | null
+          agency_id?: string
+          created_at?: string
+          event_data?: Json
+          event_type?: string
+          file_id?: string | null
+          id?: string
+          new_status?: Database["public"]["Enums"]["negotiation_status"] | null
+          occurred_at?: string
+          previous_status?:
+            | Database["public"]["Enums"]["negotiation_status"]
+            | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agency_audit_events_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "agency_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_audit_events_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "real_estate_agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_audit_events_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "agency_files"
             referencedColumns: ["id"]
           },
         ]
@@ -600,7 +685,8 @@ export type Database = {
           next_step_date: string | null
           next_steps: string | null
           regional_director: string | null
-          state: string
+          registration_incomplete: boolean
+          state: string | null
           total_interactions: number
           updated_at: string
           updated_by: string | null
@@ -625,7 +711,8 @@ export type Database = {
           next_step_date?: string | null
           next_steps?: string | null
           regional_director?: string | null
-          state: string
+          registration_incomplete?: boolean
+          state?: string | null
           total_interactions?: number
           updated_at?: string
           updated_by?: string | null
@@ -650,7 +737,8 @@ export type Database = {
           next_step_date?: string | null
           next_steps?: string | null
           regional_director?: string | null
-          state?: string
+          registration_incomplete?: boolean
+          state?: string | null
           total_interactions?: number
           updated_at?: string
           updated_by?: string | null
