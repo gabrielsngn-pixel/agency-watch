@@ -107,38 +107,65 @@ function fileUrl(value?: string) {
 }
 
 function buildPayload(row: string[], rowNumber: number, payloadHash: string) {
+  // Sheet column layout (after form simplification — see "situação atual forms"):
+  //  0 Timestamp
+  //  1 E-mail do Consultor
+  //  2 Nome da Imobiliária (dropdown existente)
+  //  3 Tipo de Atividade
+  //  4 Resumo da Atividade
+  //  5 Resultado da Interação
+  //  6 Precisa de apoio C-Level?
+  //  7 Observações
+  //  8 Próximo Passo
+  //  9 Data do Próximo Passo
+  // 10 Status atual da imobiliária (Kanban)  ← imobiliária existente
+  // 11 Receber Base de Clientes (arquivo)
+  // 12 Origem da Base
+  // 13 Observações da Base
+  // 14 Nome da Imobiliária (nova)
+  // 15 Cidade
+  // 16 UF
+  // 17 Contato Principal
+  // 18 Cargo
+  // 19 Telefone
+  // 20 Email
+  // 21 Garantidor Atual
+  // 22 Potencial Percebido
+  // 23 Etapa atual  ← imobiliária nova
   const existingAgencyName = cell(row, 2);
-  const prospectAgencyName = cell(row, 16);
+  const newAgencyName = cell(row, 14);
   const rawActivityType = cell(row, 3);
-  const attachment = fileUrl(cell(row, 13));
+  const attachment = fileUrl(cell(row, 11));
   const activityType = normalizeActivityType(rawActivityType);
+  const kanbanExisting = normalizeKanbanStatus(cell(row, 10));
+  const kanbanNew = normalizeKanbanStatus(cell(row, 23));
 
   return {
     consultant_email: cell(row, 1),
-    agency_name: prospectAgencyName ?? existingAgencyName,
-    city: cell(row, 17),
-    state: cell(row, 18),
-    main_contact: cell(row, 19),
-    contact_role: cell(row, 20),
-    contact_phone: cell(row, 21),
-    contact_email: cell(row, 22),
-    current_guarantor: cell(row, 23),
-    perceived_potential: cell(row, 24),
+    agency_name: newAgencyName ?? existingAgencyName,
+    city: cell(row, 15),
+    state: cell(row, 16),
+    main_contact: cell(row, 17),
+    contact_role: cell(row, 18),
+    contact_phone: cell(row, 19),
+    contact_email: cell(row, 20),
+    current_guarantor: cell(row, 21),
+    perceived_potential: cell(row, 22),
     activity_type: activityType,
     activity_type_detail: activityType === "other" ? rawActivityType ?? "Prospecção de nova imobiliária" : undefined,
     summary: cell(row, 4) ?? "Cadastro de nova imobiliária via prospecção",
     interaction_result: cell(row, 5),
     c_level_support_needed: yes(cell(row, 6)),
-    notes: [cell(row, 7), cell(row, 15)].filter(Boolean).join("\n") || undefined,
+    notes: [cell(row, 7), cell(row, 13)].filter(Boolean).join("\n") || undefined,
     next_steps: cell(row, 8),
     next_step_date: parseBrazilianDate(cell(row, 9)),
-    status_changed: yes(cell(row, 10)),
-    previous_status: normalizeKanbanStatus(cell(row, 11)),
-    new_status: normalizeKanbanStatus(cell(row, 12)),
+    // Fluxo single-field — o consultor marca UM kanban; a comparação com o
+    // CRM e a criação do pedido de aprovação acontecem em activities.ts.
+    status_changed: false,
     uploaded_file_url: attachment,
     uploaded_file_name: attachment ? `base-resposta-${rowNumber}` : undefined,
-    base_origin: cell(row, 14),
-    initial_kanban_status: normalizeKanbanStatus(cell(row, 25)) ?? detectInitialKanbanStatus(row, [3, 4, 5, 11, 12]),
+    base_origin: cell(row, 12),
+    initial_kanban_status: kanbanExisting ?? kanbanNew ?? detectInitialKanbanStatus(row, [3, 4, 5]),
     activity_date: parseBrazilianDate(cell(row, 0), true),
     google_submission: {
       spreadsheet_id: SPREADSHEET_ID,
