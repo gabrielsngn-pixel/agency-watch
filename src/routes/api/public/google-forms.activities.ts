@@ -333,7 +333,41 @@ export const Route = createFileRoute("/api/public/google-forms/activities")({
             error_code: null,
           }).eq("id", submissionId);
         }
-        return Response.json({ ok: true, activity_id: activity.id, agency_id: agency.id });
+
+        // Create a pending kanban change request when the form-submitted
+        // status differs from the agency's current CRM status.
+        let pendingRequestId: string | null = null;
+        if (kanbanMismatch && formKanbanStatus) {
+          const { data: req, error: reqError } = await supabaseAdmin
+            .from("kanban_change_requests")
+            .insert({
+              agency_id: agency.id,
+              agency_name: agency.name,
+              activity_id: activity.id,
+              current_status: agency.negotiation_status,
+              requested_status: formKanbanStatus,
+              requested_by_email: input.consultant_email,
+              requested_by_name: consultant?.name ?? null,
+              requested_by_user_id: consultant?.user_id ?? null,
+              source: "google_forms",
+              status: "pending",
+            })
+            .select("id")
+            .single();
+          if (reqError) {
+            console.error("[google-forms.activities] kanban request failed", reqError.message);
+          } else {
+            pendingRequestId = req.id;
+          }
+        }
+
+        return Response.json({
+          ok: true,
+          activity_id: activity.id,
+          agency_id: agency.id,
+          kanban_change_request_id: pendingRequestId,
+          kanban_pending_approval: kanbanMismatch,
+        });
       },
     },
   },
