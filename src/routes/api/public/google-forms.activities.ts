@@ -193,12 +193,33 @@ export const Route = createFileRoute("/api/public/google-forms/activities")({
         if (!agency) {
           return Response.json({ ok: false, error: "agency_create_failed" }, { status: 500 });
         }
-        if (statusChanged && input.previous_status !== agency.negotiation_status) {
+
+        // ---- Single-field kanban flow (form): consultant picks ONE kanban
+        // status. If it differs from the current CRM status, we DO NOT change
+        // the agency status — we register a pending change request that an
+        // admin must approve/reject from Mission Control.
+        const formKanbanStatus = input.initial_kanban_status ?? null;
+        const agencyWasJustCreated = !existingAgency;
+        const kanbanMismatch = Boolean(
+          formKanbanStatus
+          && !agencyWasJustCreated
+          && formKanbanStatus !== agency.negotiation_status,
+        );
+
+        // Legacy multi-field flow: only enforce stale/unchanged when the
+        // caller explicitly opted into the old status_changed contract AND
+        // didn't send a single-field kanban status.
+        const usingLegacyFlow = statusChanged && !formKanbanStatus;
+        if (usingLegacyFlow && input.previous_status !== agency.negotiation_status) {
           return Response.json({ ok: false, error: "stale_previous_status" }, { status: 409 });
         }
-        if (statusChanged && input.new_status === agency.negotiation_status) {
+        if (usingLegacyFlow && input.new_status === agency.negotiation_status) {
           return Response.json({ ok: false, error: "status_unchanged" }, { status: 400 });
         }
+
+        // If single-field flow detected a mismatch, suppress direct status change.
+        const effectiveStatusChanged = kanbanMismatch ? false : statusChanged;
+        const effectiveNewStatus = kanbanMismatch ? null : (statusChanged ? input.new_status ?? null : null);
 
         const remoteFileUrl = input.uploaded_file_url ?? input.attachment_url;
         const originalFileName = input.uploaded_file_name ?? input.attachment_name;
@@ -266,9 +287,9 @@ export const Route = createFileRoute("/api/public/google-forms/activities")({
           interaction_result_detail: input.interaction_result_detail?.trim() || null,
           next_steps: input.next_step ?? input.next_steps ?? null,
           next_step_date: input.next_step_date ?? null,
-          status_changed: statusChanged,
+          status_changed: effectiveStatusChanged,
           previous_status: agency.negotiation_status,
-          new_status: statusChanged ? input.new_status ?? null : null,
+          new_status: effectiveNewStatus,
           c_level_support_needed: input.c_level_support_needed,
           attachment_url: storedFilePath ?? input.uploaded_file_url ?? input.attachment_url ?? null,
           attachment_name: input.uploaded_file_name ?? input.attachment_name ?? null,
@@ -312,7 +333,41 @@ export const Route = createFileRoute("/api/public/google-forms/activities")({
             error_code: null,
           }).eq("id", submissionId);
         }
-        return Response.json({ ok: true, activity_id: activity.id, agency_id: agency.id });
+
+        // Create a pending kanban change request when the form-submitted
+        // status differs from the agency's current CRM status.
+        let pendingRequestId: string | null = null;
+        if (kanbanMismatch && formKanbanStatus) {
+          const { data: req, error: reqError } = await supabaseAdmin
+            .from("kanban_change_requests")
+            .insert({
+              agency_id: agency.id,
+              agency_name: agency.name,
+              activity_id: activity.id,
+              current_status: agency.negotiation_status,
+              requested_status: formKanbanStatus,
+              requested_by_email: input.consultant_email,
+              requested_by_name: consultant?.name ?? null,
+              requested_by_user_id: consultant?.user_id ?? null,
+              source: "google_forms",
+              status: "pending",
+            })
+            .select("id")
+            .single();
+          if (reqError) {
+            console.error("[google-forms.activities] kanban request failed", reqError.message);
+          } else {
+            pendingRequestId = req.id;
+          }
+        }
+
+        return Response.json({
+          ok: true,
+          activity_id: activity.id,
+          agency_id: agency.id,
+          kanban_change_request_id: pendingRequestId,
+          kanban_pending_approval: kanbanMismatch,
+        });
       },
     },
   },
