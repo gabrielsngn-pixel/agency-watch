@@ -28,9 +28,11 @@ const ACTIVITY_TYPES: Record<string, string> = {
 const KANBAN_STATUS_ALIASES: Record<string, NegotiationStatus> = {
   "sem interesse": "Sem interesse",
   "nao tem interesse": "Sem interesse",
+  "nao tem iteresse": "Sem interesse",
   "nao ha interesse": "Sem interesse",
   "sem interesse na parceria": "Sem interesse",
   "nao interessado": "Sem interesse",
+  "sem iteresse": "Sem interesse",
   "pipeline de prospeccao": "Pipeline de Prospecção",
   "pipeline": "Pipeline de Prospecção",
   "prospeccao": "Pipeline de Prospecção",

@@ -45,6 +45,33 @@ function normalize(s: string) {
   return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
 }
 
+// Aceita variações comuns / typos vindos das planilhas para os estágios do Kanban.
+const STATUS_ALIASES: Record<string, NegotiationStatus> = {
+  seminteresse: "Sem interesse",
+  naoteminteresse: "Sem interesse",
+  naotemiteresse: "Sem interesse",
+  semiteresse: "Sem interesse",
+  nainteressado: "Sem interesse",
+  naointeressado: "Sem interesse",
+  pipelinedeprospeccao: "Pipeline de Prospecção",
+  pipeline: "Pipeline de Prospecção",
+  prospeccao: "Pipeline de Prospecção",
+  conversasiniciadas: "Conversas iniciadas",
+  reuniaoagendada: "Reunião agendada",
+  aguardandobase: "Aguardando base",
+  standby: "Stand by",
+  propostaenviada: "Proposta enviada",
+  emnegociacao: "Em negociação",
+  convertida: "Convertida",
+};
+
+function resolveStatus(value: unknown): NegotiationStatus | null {
+  if (value === undefined || value === null || value === "") return null;
+  const raw = String(value).trim();
+  if (NEGOTIATION_STATUSES.includes(raw as NegotiationStatus)) return raw as NegotiationStatus;
+  return STATUS_ALIASES[normalize(raw)] ?? null;
+}
+
 type Row = {
   raw: Record<string, any>;
   parsed: Record<string, any>;
@@ -89,8 +116,10 @@ function ImportPage() {
         if (!BR_STATES.includes(uf as any)) errors.push(`UF inválida: ${out.state}`);
         else out.state = uf;
       }
-      if (out.negotiation_status && !NEGOTIATION_STATUSES.includes(out.negotiation_status as NegotiationStatus)) {
-        errors.push(`Status desconhecido: ${out.negotiation_status}`);
+      if (out.negotiation_status) {
+        const resolved = resolveStatus(out.negotiation_status);
+        if (!resolved) errors.push(`Status desconhecido: ${out.negotiation_status}`);
+        else out.negotiation_status = resolved;
       }
       if (!out.negotiation_status) out.negotiation_status = "Pipeline de Prospecção";
       if (out.contract_stock !== undefined && out.contract_stock !== "") {
