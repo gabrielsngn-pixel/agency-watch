@@ -581,6 +581,75 @@ export type Database = {
         }
         Relationships: []
       }
+      google_form_submissions: {
+        Row: {
+          activity_id: string | null
+          agency_id: string | null
+          attempt_count: number
+          created_at: string
+          error_code: string | null
+          id: string
+          payload: Json
+          payload_hash: string
+          processed_at: string | null
+          processing_status: string
+          response_timestamp: string | null
+          row_number: number
+          sheet_name: string
+          spreadsheet_id: string
+          updated_at: string
+        }
+        Insert: {
+          activity_id?: string | null
+          agency_id?: string | null
+          attempt_count?: number
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          payload?: Json
+          payload_hash: string
+          processed_at?: string | null
+          processing_status?: string
+          response_timestamp?: string | null
+          row_number: number
+          sheet_name: string
+          spreadsheet_id: string
+          updated_at?: string
+        }
+        Update: {
+          activity_id?: string | null
+          agency_id?: string | null
+          attempt_count?: number
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          payload?: Json
+          payload_hash?: string
+          processed_at?: string | null
+          processing_status?: string
+          response_timestamp?: string | null
+          row_number?: number
+          sheet_name?: string
+          spreadsheet_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_form_submissions_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "agency_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_form_submissions_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "real_estate_agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hubspot_mappings: {
         Row: {
           agency_id: string
