@@ -51,7 +51,7 @@ function fileUrl(value?: string) {
   return value.split(",").map((item) => item.trim()).find(Boolean);
 }
 
-function buildPayload(row: string[], rowNumber: number) {
+function buildPayload(row: string[], rowNumber: number, payloadHash: string) {
   const existingAgencyName = cell(row, 2);
   const prospectAgencyName = cell(row, 16);
   const rawActivityType = cell(row, 3);
@@ -90,7 +90,7 @@ function buildPayload(row: string[], rowNumber: number) {
       sheet_name: SHEET_NAME,
       row_number: rowNumber,
       response_timestamp: parseBrazilianDate(cell(row, 0), true),
-      payload_hash: createHash("sha256").update(JSON.stringify(row)).digest("hex"),
+      payload_hash: payloadHash,
       payload: row,
     },
   };
@@ -111,18 +111,9 @@ async function runSync(request: Request) {
   }
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: latest } = await supabaseAdmin
-    .from("google_form_submissions")
-    .select("row_number")
-    .eq("spreadsheet_id", SPREADSHEET_ID)
-    .eq("sheet_name", SHEET_NAME)
-    .eq("processing_status", "processed")
-    .order("row_number", { ascending: false })
-    .limit(1)
-    .maybeSingle();
 
-  const startRow = Math.max(2, (latest?.row_number ?? 1) + 1);
-  const range = `'${SHEET_NAME}'!A${startRow}:AE`;
+  // Read the entire sheet so we can detect deleted rows.
+  const range = `'${SHEET_NAME}'!A2:AE`;
   const response = await fetch(`${SHEETS_GATEWAY}/spreadsheets/${SPREADSHEET_ID}/values/${range}?valueRenderOption=FORMATTED_VALUE`, {
     headers: {
       Authorization: `Bearer ${lovableKey}`,
@@ -136,18 +127,54 @@ async function runSync(request: Request) {
 
   const body = await response.json() as { values?: string[][] };
   const rows = body.values ?? [];
+
+  // Compute hash for every non-empty row currently in the sheet.
+  const liveRows: Array<{ rowNumber: number; row: string[]; hash: string }> = [];
+  for (let index = 0; index < rows.length; index += 1) {
+    const row = rows[index];
+    if (!row?.some((value) => value?.trim())) continue;
+    const hash = createHash("sha256").update(JSON.stringify(row)).digest("hex");
+    liveRows.push({ rowNumber: index + 2, row, hash });
+  }
+  const liveHashes = liveRows.map((r) => r.hash);
+
+  // Destructive sync: remove submissions (+ activities, orphan agencies) that
+  // no longer exist in the sheet.
+  const { data: pruneResult, error: pruneError } = await supabaseAdmin.rpc(
+    "prune_google_form_submissions",
+    {
+      p_spreadsheet: SPREADSHEET_ID,
+      p_sheet: SHEET_NAME,
+      p_keep_hashes: liveHashes,
+    },
+  );
+  if (pruneError) {
+    console.error("[google-forms.sync] prune failed", pruneError.message);
+  }
+
+  // Skip rows we have already processed (by hash).
+  const { data: processedRows } = await supabaseAdmin
+    .from("google_form_submissions")
+    .select("payload_hash")
+    .eq("spreadsheet_id", SPREADSHEET_ID)
+    .eq("sheet_name", SHEET_NAME)
+    .eq("processing_status", "processed");
+  const processedHashes = new Set((processedRows ?? []).map((r) => r.payload_hash));
+
   const activityEndpoint = new URL("/api/public/google-forms/activities", request.url);
   let processed = 0;
   let failed = 0;
+  let skipped = 0;
 
-  for (let index = 0; index < rows.length; index += 1) {
-    const rowNumber = startRow + index;
-    const row = rows[index];
-    if (!row?.some((value) => value?.trim())) continue;
+  for (const { rowNumber, row, hash } of liveRows) {
+    if (processedHashes.has(hash)) {
+      skipped += 1;
+      continue;
+    }
     const result = await fetch(activityEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-webhook-secret": webhookSecret },
-      body: JSON.stringify(buildPayload(row, rowNumber)),
+      body: JSON.stringify(buildPayload(row, rowNumber, hash)),
     });
     if (result.ok) processed += 1;
     else {
@@ -156,7 +183,14 @@ async function runSync(request: Request) {
     }
   }
 
-  return Response.json({ ok: failed === 0, start_row: startRow, found: rows.length, processed, failed });
+  return Response.json({
+    ok: failed === 0,
+    sheet_rows: liveRows.length,
+    processed,
+    failed,
+    skipped,
+    pruned: pruneResult ?? null,
+  });
 }
 
 export const Route = createFileRoute("/api/public/google-forms/sync")({
