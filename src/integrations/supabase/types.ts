@@ -1049,6 +1049,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      prune_google_form_submissions: {
+        Args: {
+          p_keep_hashes: string[]
+          p_sheet: string
+          p_spreadsheet: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       agency_activity_type:
