@@ -138,7 +138,7 @@ function buildPayload(row: string[], rowNumber: number, payloadHash: string) {
     uploaded_file_url: attachment,
     uploaded_file_name: attachment ? `base-resposta-${rowNumber}` : undefined,
     base_origin: cell(row, 14),
-    initial_kanban_status: normalizeKanbanStatus(cell(row, 25)),
+    initial_kanban_status: normalizeKanbanStatus(cell(row, 25)) ?? detectInitialKanbanStatus(row, [3, 4, 5, 11, 12]),
     activity_date: parseBrazilianDate(cell(row, 0), true),
     google_submission: {
       spreadsheet_id: SPREADSHEET_ID,
