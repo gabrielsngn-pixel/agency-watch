@@ -1,0 +1,1 @@
+DROP TRIGGER IF EXISTS audit_agency_kanban_after_update ON public.real_estate_agencies;
