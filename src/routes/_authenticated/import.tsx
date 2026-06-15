@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
@@ -10,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle } from "lucide-react";
 import { NEGOTIATION_STATUSES, BR_STATES, type NegotiationStatus } from "@/lib/constants";
+import { logImportEvent } from "@/lib/import-log.functions";
+
 
 export const Route = createFileRoute("/_authenticated/import")({
   component: ImportPage,
