@@ -79,7 +79,9 @@ const FIELD_LABEL: Record<string, string> = {
   regional_director: "Diretor regional",
   guarantor_type: "Tipo garantidor",
   current_guarantor: "Garantidor atual",
+  imported: "Importação",
 };
+
 
 const SOURCE_LABEL: Record<string, { label: string; tone: string }> = {
   slack: { label: "Slack", tone: "bg-info/15 text-info border-info/30" },

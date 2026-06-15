@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
@@ -10,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle } from "lucide-react";
 import { NEGOTIATION_STATUSES, BR_STATES, type NegotiationStatus } from "@/lib/constants";
+import { logImportEvent } from "@/lib/import-log.functions";
+
 
 export const Route = createFileRoute("/_authenticated/import")({
   component: ImportPage,
@@ -145,6 +148,8 @@ function ImportPage() {
     toast.success(`${parsed.length} linhas analisadas`);
   };
 
+  const logEvent = useServerFn(logImportEvent);
+
   const handleImport = async () => {
     setImporting(true);
     const valid = rows.filter((r) => r.action !== "skip");
@@ -155,10 +160,18 @@ function ImportPage() {
       const payload: any = { ...rest, updated_by: user?.id };
       if (r.action === "update" && r.existingId) {
         const { error } = await supabase.from("real_estate_agencies").update(payload).eq("id", r.existingId);
-        if (error) failed++; else updated++;
+        if (error) failed++;
+        else {
+          updated++;
+          await logEvent({ data: { agency_id: r.existingId, agency_name: String(payload.name), action: "update", file_name: fileName || undefined } }).catch(() => {});
+        }
       } else {
-        const { error } = await supabase.from("real_estate_agencies").insert({ ...payload, created_by: user?.id });
-        if (error) failed++; else created++;
+        const { data: inserted, error } = await supabase.from("real_estate_agencies").insert({ ...payload, created_by: user?.id }).select("id").single();
+        if (error || !inserted) failed++;
+        else {
+          created++;
+          await logEvent({ data: { agency_id: inserted.id, agency_name: String(payload.name), action: "create", file_name: fileName || undefined } }).catch(() => {});
+        }
       }
     }
     setImporting(false);
@@ -166,6 +179,7 @@ function ImportPage() {
     setRows([]);
     setFileName("");
   };
+
 
   const stats = {
     create: rows.filter((r) => r.action === "create").length,
