@@ -26,6 +26,7 @@ export type Database = {
           base_origin: string | null
           c_level_support_needed: boolean
           created_at: string
+          google_submission_id: string | null
           id: string
           interaction_result: string | null
           interaction_result_detail: string | null
@@ -55,6 +56,7 @@ export type Database = {
           base_origin?: string | null
           c_level_support_needed?: boolean
           created_at?: string
+          google_submission_id?: string | null
           id?: string
           interaction_result?: string | null
           interaction_result_detail?: string | null
@@ -84,6 +86,7 @@ export type Database = {
           base_origin?: string | null
           c_level_support_needed?: boolean
           created_at?: string
+          google_submission_id?: string | null
           id?: string
           interaction_result?: string | null
           interaction_result_detail?: string | null
@@ -108,6 +111,13 @@ export type Database = {
             columns: ["agency_id"]
             isOneToOne: false
             referencedRelation: "real_estate_agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agency_activities_google_submission_id_fkey"
+            columns: ["google_submission_id"]
+            isOneToOne: false
+            referencedRelation: "google_form_submissions"
             referencedColumns: ["id"]
           },
         ]
