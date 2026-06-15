@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createHash } from "node:crypto";
+import { NEGOTIATION_STATUSES, type NegotiationStatus } from "@/lib/constants";
 
 const SPREADSHEET_ID = "1caah-49ESwqIip27EUzkkEK7Mjhd7V-hGneqGog_AlU";
 const SHEET_NAME = "Respostas ao formulário 1";
@@ -22,6 +23,44 @@ const ACTIVITY_TYPES: Record<string, string> = {
   "atualização cadastral": "cadastro_update",
   outro: "other",
 };
+
+// Aliases (lower-cased, accent-folded) → canonical NEGOTIATION_STATUSES value.
+const KANBAN_STATUS_ALIASES: Record<string, NegotiationStatus> = {
+  "sem interesse": "Sem interesse",
+  "nao tem interesse": "Sem interesse",
+  "nao ha interesse": "Sem interesse",
+  "sem interesse na parceria": "Sem interesse",
+  "nao interessado": "Sem interesse",
+  "pipeline de prospeccao": "Pipeline de Prospecção",
+  "pipeline": "Pipeline de Prospecção",
+  "prospeccao": "Pipeline de Prospecção",
+  "conversas iniciadas": "Conversas iniciadas",
+  "reuniao agendada": "Reunião agendada",
+  "aguardando base": "Aguardando base",
+  "stand by": "Stand by",
+  "proposta enviada": "Proposta enviada",
+  "em negociacao": "Em negociação",
+  "convertida": "Convertida",
+};
+
+function foldKey(value: string) {
+  return value
+    .toLocaleLowerCase("pt-BR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeKanbanStatus(value?: string): NegotiationStatus | undefined {
+  if (!value) return undefined;
+  const folded = foldKey(value);
+  if (!folded) return undefined;
+  // Exact match against canonical first.
+  const direct = NEGOTIATION_STATUSES.find((s) => foldKey(s) === folded);
+  if (direct) return direct;
+  return KANBAN_STATUS_ALIASES[folded];
+}
 
 function cell(row: string[], index: number) {
   return row[index]?.trim() || undefined;
