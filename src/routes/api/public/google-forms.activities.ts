@@ -38,6 +38,7 @@ const payloadSchema = z.object({
   attachment_name: z.string().max(255).nullish(),
   uploaded_file_name: z.string().max(255).nullish(),
   base_origin: z.string().max(500).nullish(),
+  initial_kanban_status: z.enum(NEGOTIATION_STATUSES).nullish(),
   notes: z.string().max(5000).nullish(),
   google_submission: z.object({
     spreadsheet_id: z.string().min(1).max(200),
@@ -171,6 +172,7 @@ export const Route = createFileRoute("/api/public/google-forms/activities")({
                 ? input.current_guarantor_detail?.trim()
                 : input.current_guarantor?.trim() || null,
               perceived_potential: input.perceived_potential?.trim() || null,
+              negotiation_status: input.initial_kanban_status ?? undefined,
               consultant_id: consultant?.id ?? null,
               created_by: consultant?.user_id ?? null,
               updated_by: consultant?.user_id ?? null,
