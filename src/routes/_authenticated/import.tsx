@@ -116,8 +116,10 @@ function ImportPage() {
         if (!BR_STATES.includes(uf as any)) errors.push(`UF inválida: ${out.state}`);
         else out.state = uf;
       }
-      if (out.negotiation_status && !NEGOTIATION_STATUSES.includes(out.negotiation_status as NegotiationStatus)) {
-        errors.push(`Status desconhecido: ${out.negotiation_status}`);
+      if (out.negotiation_status) {
+        const resolved = resolveStatus(out.negotiation_status);
+        if (!resolved) errors.push(`Status desconhecido: ${out.negotiation_status}`);
+        else out.negotiation_status = resolved;
       }
       if (!out.negotiation_status) out.negotiation_status = "Pipeline de Prospecção";
       if (out.contract_stock !== undefined && out.contract_stock !== "") {
