@@ -68,6 +68,20 @@ function cell(row: string[], index: number) {
   return row[index]?.trim() || undefined;
 }
 
+// The form's "Status atual da imobiliária (Kanban)" column position has
+// changed over time (currently last column, was column 25). Scan the row
+// from the end and return the first cell whose value normalizes to a known
+// kanban status, ignoring cells already consumed as activity_type/result.
+function detectInitialKanbanStatus(row: string[], ignoreIndexes: number[]): NegotiationStatus | undefined {
+  const ignore = new Set(ignoreIndexes);
+  for (let i = row.length - 1; i >= 0; i -= 1) {
+    if (ignore.has(i)) continue;
+    const status = normalizeKanbanStatus(cell(row, i));
+    if (status) return status;
+  }
+  return undefined;
+}
+
 function yes(value?: string) {
   return value?.toLocaleLowerCase("pt-BR") === "sim";
 }
@@ -124,7 +138,7 @@ function buildPayload(row: string[], rowNumber: number, payloadHash: string) {
     uploaded_file_url: attachment,
     uploaded_file_name: attachment ? `base-resposta-${rowNumber}` : undefined,
     base_origin: cell(row, 14),
-    initial_kanban_status: normalizeKanbanStatus(cell(row, 25)),
+    initial_kanban_status: normalizeKanbanStatus(cell(row, 25)) ?? detectInitialKanbanStatus(row, [3, 4, 5, 11, 12]),
     activity_date: parseBrazilianDate(cell(row, 0), true),
     google_submission: {
       spreadsheet_id: SPREADSHEET_ID,
