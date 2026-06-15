@@ -83,6 +83,7 @@ function buildPayload(row: string[], rowNumber: number) {
     uploaded_file_url: attachment,
     uploaded_file_name: attachment ? `base-resposta-${rowNumber}` : undefined,
     base_origin: cell(row, 14),
+    initial_kanban_status: cell(row, 25),
     activity_date: parseBrazilianDate(cell(row, 0), true),
     google_submission: {
       spreadsheet_id: SPREADSHEET_ID,
