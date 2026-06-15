@@ -70,7 +70,7 @@ function buildPayload(row: string[], rowNumber: number) {
     current_guarantor: cell(row, 23),
     perceived_potential: cell(row, 24),
     activity_type: activityType,
-    activity_type_detail: activityType === "other" ? rawActivityType : undefined,
+    activity_type_detail: activityType === "other" ? rawActivityType ?? "Prospecção de nova imobiliária" : undefined,
     summary: cell(row, 4) ?? "Cadastro de nova imobiliária via prospecção",
     interaction_result: cell(row, 5),
     c_level_support_needed: yes(cell(row, 6)),
@@ -115,6 +115,7 @@ async function runSync(request: Request) {
     .select("row_number")
     .eq("spreadsheet_id", SPREADSHEET_ID)
     .eq("sheet_name", SHEET_NAME)
+    .eq("processing_status", "processed")
     .order("row_number", { ascending: false })
     .limit(1)
     .maybeSingle();

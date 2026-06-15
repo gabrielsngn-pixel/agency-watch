@@ -198,9 +198,11 @@ export const Route = createFileRoute("/api/public/google-forms/activities")({
           return Response.json({ ok: false, error: "status_unchanged" }, { status: 400 });
         }
 
-        const isReceivedBase = (input.interaction_result ?? "").trim().toLocaleLowerCase("pt-BR") === "base recebida";
         const remoteFileUrl = input.uploaded_file_url ?? input.attachment_url;
         const originalFileName = input.uploaded_file_name ?? input.attachment_name;
+        const isReceivedBase = Boolean(remoteFileUrl || input.uploaded_file_base64)
+          || input.activity_type === "client_base_received"
+          || (input.interaction_result ?? "").trim().toLocaleLowerCase("pt-BR") === "base recebida";
         if (isReceivedBase && !(remoteFileUrl || input.uploaded_file_base64)) {
           return Response.json({ ok: false, error: "attachment_required" }, { status: 400 });
         }
