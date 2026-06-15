@@ -193,12 +193,33 @@ export const Route = createFileRoute("/api/public/google-forms/activities")({
         if (!agency) {
           return Response.json({ ok: false, error: "agency_create_failed" }, { status: 500 });
         }
-        if (statusChanged && input.previous_status !== agency.negotiation_status) {
+
+        // ---- Single-field kanban flow (form): consultant picks ONE kanban
+        // status. If it differs from the current CRM status, we DO NOT change
+        // the agency status — we register a pending change request that an
+        // admin must approve/reject from Mission Control.
+        const formKanbanStatus = input.initial_kanban_status ?? null;
+        const agencyWasJustCreated = !existingAgency;
+        const kanbanMismatch = Boolean(
+          formKanbanStatus
+          && !agencyWasJustCreated
+          && formKanbanStatus !== agency.negotiation_status,
+        );
+
+        // Legacy multi-field flow: only enforce stale/unchanged when the
+        // caller explicitly opted into the old status_changed contract AND
+        // didn't send a single-field kanban status.
+        const usingLegacyFlow = statusChanged && !formKanbanStatus;
+        if (usingLegacyFlow && input.previous_status !== agency.negotiation_status) {
           return Response.json({ ok: false, error: "stale_previous_status" }, { status: 409 });
         }
-        if (statusChanged && input.new_status === agency.negotiation_status) {
+        if (usingLegacyFlow && input.new_status === agency.negotiation_status) {
           return Response.json({ ok: false, error: "status_unchanged" }, { status: 400 });
         }
+
+        // If single-field flow detected a mismatch, suppress direct status change.
+        const effectiveStatusChanged = kanbanMismatch ? false : statusChanged;
+        const effectiveNewStatus = kanbanMismatch ? null : (statusChanged ? input.new_status ?? null : null);
 
         const remoteFileUrl = input.uploaded_file_url ?? input.attachment_url;
         const originalFileName = input.uploaded_file_name ?? input.attachment_name;
