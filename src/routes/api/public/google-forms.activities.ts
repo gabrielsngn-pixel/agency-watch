@@ -26,6 +26,7 @@ const payloadSchema = z.object({
   next_steps: z.string().max(5000).nullish(),
   next_step: z.string().max(5000).nullish(),
   next_step_date: z.string().date().nullish(),
+  activity_date: z.string().datetime({ offset: true }).nullish(),
   status_changed: z.boolean().default(false),
   kanban_changed: z.boolean().optional(),
   new_status: z.enum(NEGOTIATION_STATUSES).nullish(),
@@ -38,6 +39,14 @@ const payloadSchema = z.object({
   uploaded_file_name: z.string().max(255).nullish(),
   base_origin: z.string().max(500).nullish(),
   notes: z.string().max(5000).nullish(),
+  google_submission: z.object({
+    spreadsheet_id: z.string().min(1).max(200),
+    sheet_name: z.string().min(1).max(200),
+    row_number: z.number().int().min(2),
+    response_timestamp: z.string().datetime({ offset: true }).nullish(),
+    payload_hash: z.string().length(64),
+    payload: z.array(z.string()).max(100),
+  }).optional(),
 }).superRefine((value, context) => {
   if (!value.agency_id && !value.agency && !value.agency_name) context.addIssue({ code: "custom", message: "agency_required" });
   if (!value.summary && !value.activity_summary) context.addIssue({ code: "custom", message: "activity_summary_required" });
@@ -54,6 +63,15 @@ function secureEqual(received: string, expected: string) {
 
 function safeFileName(value: string) {
   return value.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 180) || "base-recebida";
+}
+
+function googleDriveFileId(value: string) {
+  try {
+    const url = new URL(value);
+    return url.pathname.match(/\/d\/([^/]+)/)?.[1] ?? url.searchParams.get("id") ?? undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export const Route = createFileRoute("/api/public/google-forms/activities")({
@@ -80,6 +98,48 @@ export const Route = createFileRoute("/api/public/google-forms/activities")({
         }
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        let submissionId: string | null = null;
+        if (input.google_submission) {
+          const submission = input.google_submission;
+          const { data: existingSubmission } = await supabaseAdmin
+            .from("google_form_submissions")
+            .select("id, processing_status, agency_id, activity_id")
+            .eq("spreadsheet_id", submission.spreadsheet_id)
+            .eq("sheet_name", submission.sheet_name)
+            .eq("row_number", submission.row_number)
+            .maybeSingle();
+          if (existingSubmission?.processing_status === "processed") {
+            return Response.json({ ok: true, duplicate: true, activity_id: existingSubmission.activity_id, agency_id: existingSubmission.agency_id });
+          }
+          if (existingSubmission) {
+            submissionId = existingSubmission.id;
+            await supabaseAdmin.from("google_form_submissions").update({
+              payload: submission.payload,
+              payload_hash: submission.payload_hash,
+              response_timestamp: submission.response_timestamp ?? null,
+              processing_status: "processing",
+              error_code: null,
+              attempt_count: 1,
+            }).eq("id", existingSubmission.id);
+          } else {
+            const { data: createdSubmission, error: submissionError } = await supabaseAdmin
+              .from("google_form_submissions")
+              .insert({
+                spreadsheet_id: submission.spreadsheet_id,
+                sheet_name: submission.sheet_name,
+                row_number: submission.row_number,
+                response_timestamp: submission.response_timestamp ?? null,
+                payload: submission.payload,
+                payload_hash: submission.payload_hash,
+                processing_status: "processing",
+                attempt_count: 1,
+              })
+              .select("id")
+              .single();
+            if (submissionError) return Response.json({ ok: false, error: "submission_register_failed" }, { status: 500 });
+            submissionId = createdSubmission.id;
+          }
+        }
         const { data: consultant } = await supabaseAdmin
           .from("consultants")
           .select("id, name, email, user_id")
@@ -153,7 +213,19 @@ export const Route = createFileRoute("/api/public/google-forms/activities")({
           if (input.uploaded_file_base64) {
             fileBytes = Uint8Array.from(Buffer.from(input.uploaded_file_base64, "base64"));
           } else {
-            const fileResponse = await fetch(remoteFileUrl ?? "", { redirect: "follow" });
+            const driveId = remoteFileUrl ? googleDriveFileId(remoteFileUrl) : undefined;
+            const driveKey = process.env.GOOGLE_DRIVE_API_KEY;
+            const lovableKey = process.env.LOVABLE_API_KEY;
+            const downloadUrl = driveId
+              ? `https://connector-gateway.lovable.dev/google_drive/drive/v3/files/${driveId}?alt=media`
+              : remoteFileUrl ?? "";
+            const fileResponse = await fetch(downloadUrl, {
+              redirect: "follow",
+              headers: driveId && driveKey && lovableKey ? {
+                Authorization: `Bearer ${lovableKey}`,
+                "X-Connection-Api-Key": driveKey,
+              } : undefined,
+            });
             if (!fileResponse.ok) {
               return Response.json({ ok: false, error: "attachment_download_failed" }, { status: 502 });
             }
@@ -199,10 +271,13 @@ export const Route = createFileRoute("/api/public/google-forms/activities")({
           base_origin: input.base_origin ?? null,
           notes: input.notes ?? null,
           source: "google_forms",
+          activity_date: input.activity_date ?? undefined,
+          google_submission_id: submissionId,
         }).select("id").single();
         if (error) {
           if (storedFilePath) await supabaseAdmin.storage.from("agency-files").remove([storedFilePath]);
           console.error("[google-forms.activities] insert failed", error.message);
+          if (submissionId) await supabaseAdmin.from("google_form_submissions").update({ processing_status: "failed", error_code: "activity_save_failed" }).eq("id", submissionId);
           return Response.json({ ok: false, error: "save_failed" }, { status: 500 });
         }
         if (storedFilePath) {
@@ -223,6 +298,15 @@ export const Route = createFileRoute("/api/public/google-forms/activities")({
             console.error("[google-forms.activities] file record failed", fileRecordError.message);
             return Response.json({ ok: false, error: "attachment_record_failed" }, { status: 500 });
           }
+        }
+        if (submissionId) {
+          await supabaseAdmin.from("google_form_submissions").update({
+            processing_status: "processed",
+            agency_id: agency.id,
+            activity_id: activity.id,
+            processed_at: new Date().toISOString(),
+            error_code: null,
+          }).eq("id", submissionId);
         }
         return Response.json({ ok: true, activity_id: activity.id, agency_id: agency.id });
       },
