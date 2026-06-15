@@ -698,6 +698,78 @@ export type Database = {
           },
         ]
       }
+      kanban_change_requests: {
+        Row: {
+          activity_id: string | null
+          agency_id: string
+          agency_name: string
+          created_at: string
+          current_status: Database["public"]["Enums"]["negotiation_status"]
+          id: string
+          requested_by_email: string | null
+          requested_by_name: string | null
+          requested_by_user_id: string | null
+          requested_status: Database["public"]["Enums"]["negotiation_status"]
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by_user_id: string | null
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          activity_id?: string | null
+          agency_id: string
+          agency_name: string
+          created_at?: string
+          current_status: Database["public"]["Enums"]["negotiation_status"]
+          id?: string
+          requested_by_email?: string | null
+          requested_by_name?: string | null
+          requested_by_user_id?: string | null
+          requested_status: Database["public"]["Enums"]["negotiation_status"]
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by_user_id?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          activity_id?: string | null
+          agency_id?: string
+          agency_name?: string
+          created_at?: string
+          current_status?: Database["public"]["Enums"]["negotiation_status"]
+          id?: string
+          requested_by_email?: string | null
+          requested_by_name?: string | null
+          requested_by_user_id?: string | null
+          requested_status?: Database["public"]["Enums"]["negotiation_status"]
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by_user_id?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kanban_change_requests_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "agency_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kanban_change_requests_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "real_estate_agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kanban_stage_snapshots: {
         Row: {
           agency_id: string
