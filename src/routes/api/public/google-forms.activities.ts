@@ -172,6 +172,7 @@ export const Route = createFileRoute("/api/public/google-forms/activities")({
                 ? input.current_guarantor_detail?.trim()
                 : input.current_guarantor?.trim() || null,
               perceived_potential: input.perceived_potential?.trim() || null,
+              negotiation_status: input.initial_kanban_status ?? undefined,
               consultant_id: consultant?.id ?? null,
               created_by: consultant?.user_id ?? null,
               updated_by: consultant?.user_id ?? null,
