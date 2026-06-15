@@ -68,6 +68,20 @@ function cell(row: string[], index: number) {
   return row[index]?.trim() || undefined;
 }
 
+// The form's "Status atual da imobiliária (Kanban)" column position has
+// changed over time (currently last column, was column 25). Scan the row
+// from the end and return the first cell whose value normalizes to a known
+// kanban status, ignoring cells already consumed as activity_type/result.
+function detectInitialKanbanStatus(row: string[], ignoreIndexes: number[]): NegotiationStatus | undefined {
+  const ignore = new Set(ignoreIndexes);
+  for (let i = row.length - 1; i >= 0; i -= 1) {
+    if (ignore.has(i)) continue;
+    const status = normalizeKanbanStatus(cell(row, i));
+    if (status) return status;
+  }
+  return undefined;
+}
+
 function yes(value?: string) {
   return value?.toLocaleLowerCase("pt-BR") === "sim";
 }
