@@ -19,6 +19,7 @@ import {
   RadialBarChart, RadialBar, PolarAngleAxis,
 } from "recharts";
 import { ACTIVITY_TYPE_LABEL, AGENCY_ACTIVITY_TYPES, BR_STATES, NEGOTIATION_STATUSES, STATUS_TONE, daysSince, type AgencyActivityType } from "@/lib/constants";
+import { KanbanApprovalsCard } from "@/components/kanban-approvals-card";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardPage,
