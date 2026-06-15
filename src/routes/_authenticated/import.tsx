@@ -45,6 +45,33 @@ function normalize(s: string) {
   return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
 }
 
+// Aceita variações comuns / typos vindos das planilhas para os estágios do Kanban.
+const STATUS_ALIASES: Record<string, NegotiationStatus> = {
+  seminteresse: "Sem interesse",
+  naoteminteresse: "Sem interesse",
+  naotemiteresse: "Sem interesse",
+  semiteresse: "Sem interesse",
+  nainteressado: "Sem interesse",
+  naointeressado: "Sem interesse",
+  pipelinedeprospeccao: "Pipeline de Prospecção",
+  pipeline: "Pipeline de Prospecção",
+  prospeccao: "Pipeline de Prospecção",
+  conversasiniciadas: "Conversas iniciadas",
+  reuniaoagendada: "Reunião agendada",
+  aguardandobase: "Aguardando base",
+  standby: "Stand by",
+  propostaenviada: "Proposta enviada",
+  emnegociacao: "Em negociação",
+  convertida: "Convertida",
+};
+
+function resolveStatus(value: unknown): NegotiationStatus | null {
+  if (value === undefined || value === null || value === "") return null;
+  const raw = String(value).trim();
+  if (NEGOTIATION_STATUSES.includes(raw as NegotiationStatus)) return raw as NegotiationStatus;
+  return STATUS_ALIASES[normalize(raw)] ?? null;
+}
+
 type Row = {
   raw: Record<string, any>;
   parsed: Record<string, any>;
