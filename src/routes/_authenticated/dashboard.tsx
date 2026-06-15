@@ -162,6 +162,8 @@ function DashboardPage() {
       />
 
       <div className="p-6 lg:p-10 space-y-6">
+        <KanbanApprovalsCard />
+
         <div>
           <h2 className="font-display text-lg font-semibold">Gestão de Atividades</h2>
           <p className="text-xs text-muted-foreground mt-1">Saúde, movimento e próximas ações da carteira de imobiliárias.</p>
