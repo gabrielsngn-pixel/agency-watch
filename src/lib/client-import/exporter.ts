@@ -1,20 +1,30 @@
 import * as XLSX from "xlsx";
-import { CREDIPRONTO_COLUMNS, COLUMN_LABELS, type CredprontoColumn } from "./template";
+import {
+  COLUMN_LABELS,
+  TEMPLATES,
+  type ImportColumn,
+  type TemplateKey,
+} from "./template";
 
-export type StandardRow = Partial<Record<CredprontoColumn, string | number>>;
+export type StandardRow = Partial<Record<ImportColumn, string | number>>;
 
-/** Gera o XLSX no formato Credipronto/Cury (cabeçalhos = nomes canônicos). */
-export function buildCrediprontoXlsx(rows: StandardRow[]): Blob {
+/** Gera o XLSX padronizado conforme o template selecionado. */
+export function buildImportXlsx(rows: StandardRow[], templateKey: TemplateKey = "simplified"): Blob {
+  const cols = TEMPLATES[templateKey].columns;
   const data = rows.map((r) => {
     const out: Record<string, any> = {};
-    for (const c of CREDIPRONTO_COLUMNS) out[c] = r[c] ?? "";
+    for (const c of cols) out[c] = r[c] ?? "";
     return out;
   });
-  const ws = XLSX.utils.json_to_sheet(data, { header: [...CREDIPRONTO_COLUMNS] });
-  // Larguras razoáveis
-  ws["!cols"] = CREDIPRONTO_COLUMNS.map((c) => ({ wch: Math.max(12, COLUMN_LABELS[c].length + 2) }));
+  const ws = XLSX.utils.json_to_sheet(data, { header: [...cols] });
+  ws["!cols"] = cols.map((c) => ({ wch: Math.max(12, COLUMN_LABELS[c].length + 2) }));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Clientes");
   const arr = XLSX.write(wb, { type: "array", bookType: "xlsx" });
-  return new Blob([arr], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  return new Blob([arr], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
 }
+
+/** Compat com nome antigo. */
+export const buildCrediprontoXlsx = (rows: StandardRow[]) => buildImportXlsx(rows, "simplified");
