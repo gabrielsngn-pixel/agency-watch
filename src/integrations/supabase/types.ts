@@ -815,6 +815,129 @@ export type Database = {
         }
         Relationships: []
       }
+      kanban_stages: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          is_system: boolean
+          is_visible: boolean
+          label: string
+          position: number
+          sla_days: number
+          stage_key: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          is_system?: boolean
+          is_visible?: boolean
+          label: string
+          position: number
+          sla_days?: number
+          stage_key: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          is_system?: boolean
+          is_visible?: boolean
+          label?: string
+          position?: number
+          sla_days?: number
+          stage_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      message_templates: {
+        Row: {
+          body: string
+          channel: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          name: string
+          subject: string | null
+          trigger: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          channel: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          subject?: string | null
+          trigger?: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          subject?: string | null
+          trigger?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      mission_control_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          metadata: Json
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          target_user_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          target_user_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          target_user_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       real_estate_agencies: {
         Row: {
           c_level_support_needed: boolean
@@ -832,6 +955,7 @@ export type Database = {
           guarantor_type: Database["public"]["Enums"]["guarantor_type"] | null
           id: string
           last_interaction_date: string | null
+          last_stage_change_at: string
           main_contact: string | null
           name: string
           negotiation_status: Database["public"]["Enums"]["negotiation_status"]
@@ -861,6 +985,7 @@ export type Database = {
           guarantor_type?: Database["public"]["Enums"]["guarantor_type"] | null
           id?: string
           last_interaction_date?: string | null
+          last_stage_change_at?: string
           main_contact?: string | null
           name: string
           negotiation_status?: Database["public"]["Enums"]["negotiation_status"]
@@ -890,6 +1015,7 @@ export type Database = {
           guarantor_type?: Database["public"]["Enums"]["guarantor_type"] | null
           id?: string
           last_interaction_date?: string | null
+          last_stage_change_at?: string
           main_contact?: string | null
           name?: string
           negotiation_status?: Database["public"]["Enums"]["negotiation_status"]
@@ -1166,6 +1292,7 @@ export type Database = {
         | "Stand by"
         | "Sem interesse"
         | "Proposta enviada"
+        | "Em precificação"
         | "Em negociação"
         | "Convertida"
       update_source: "web" | "whatsapp" | "import"
@@ -1334,6 +1461,7 @@ export const Constants = {
         "Stand by",
         "Sem interesse",
         "Proposta enviada",
+        "Em precificação",
         "Em negociação",
         "Convertida",
       ],
