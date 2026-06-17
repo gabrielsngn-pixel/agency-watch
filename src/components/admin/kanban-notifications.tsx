@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Play, Save } from "lucide-react";
 import { toast } from "sonner";
 
 type Settings = {
@@ -26,6 +26,9 @@ type Settings = {
   notify_regional_director: boolean;
   notify_admins: boolean;
   extra_emails: string[];
+  sla_stage_days: number | null;
+  sla_no_interaction_days: number | null;
+  sla_template_name: string;
 };
 
 const DEFAULT: Omit<Settings, "stage_key"> = {
@@ -35,6 +38,9 @@ const DEFAULT: Omit<Settings, "stage_key"> = {
   notify_regional_director: false,
   notify_admins: false,
   extra_emails: [],
+  sla_stage_days: null,
+  sla_no_interaction_days: null,
+  sla_template_name: "kanban-sla-alert",
 };
 
 export function KanbanNotifications() {
@@ -69,6 +75,10 @@ export function KanbanNotifications() {
           existing?.notify_regional_director ?? DEFAULT.notify_regional_director,
         notify_admins: existing?.notify_admins ?? DEFAULT.notify_admins,
         extra_emails: existing?.extra_emails ?? DEFAULT.extra_emails,
+        sla_stage_days: existing?.sla_stage_days ?? DEFAULT.sla_stage_days,
+        sla_no_interaction_days:
+          existing?.sla_no_interaction_days ?? DEFAULT.sla_no_interaction_days,
+        sla_template_name: existing?.sla_template_name ?? DEFAULT.sla_template_name,
       };
     }
     setDrafts(next);
@@ -88,6 +98,20 @@ export function KanbanNotifications() {
     onError: (e: any) => toast.error(e.message ?? "Erro"),
   });
 
+  const runSlaNow = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc("process_kanban_sla_alerts" as any);
+      if (error) throw error;
+      return data as any;
+    },
+    onSuccess: (data: any) => {
+      toast.success(
+        `Processado: ${data?.enqueued ?? 0} e-mail(s) enfileirado(s), ${data?.skipped ?? 0} ignorado(s).`,
+      );
+    },
+    onError: (e: any) => toast.error(e.message ?? "Erro ao processar SLAs"),
+  });
+
   if (stagesQuery.isLoading || settingsQuery.isLoading) {
     return <Loader2 className="h-5 w-5 animate-spin" />;
   }
@@ -96,9 +120,27 @@ export function KanbanNotifications() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        Configure quais etapas do Kanban geram e-mail automático e quem é notificado quando uma imobiliária entra naquela etapa.
-      </p>
+      <div className="flex items-start justify-between gap-4">
+        <p className="text-sm text-muted-foreground">
+          Configure quais etapas do Kanban geram e-mail automático ao mudar de etapa
+          <strong> e</strong> os alertas de SLA (dias parada na etapa ou sem interação).
+          O processamento de SLA roda automaticamente todo dia às 10h (Brasília).
+        </p>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => runSlaNow.mutate()}
+          disabled={runSlaNow.isPending}
+        >
+          {runSlaNow.isPending ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Play className="h-4 w-4 mr-2" />
+          )}
+          Rodar SLA agora
+        </Button>
+      </div>
+
       {stages.map((stage) => {
         const d = drafts[stage.stage_key];
         if (!d) return null;
@@ -122,10 +164,10 @@ export function KanbanNotifications() {
                 />
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <Label>Template</Label>
+                  <Label>Template (mudança de etapa)</Label>
                   <Select
                     value={d.template_name}
                     onValueChange={(v) => setD({ template_name: v })}
@@ -175,6 +217,66 @@ export function KanbanNotifications() {
                   onChange={(v) => setD({ notify_admins: v })}
                 />
               </div>
+
+              <div className="rounded-md border border-amber-200 bg-amber-50/40 p-4 space-y-3">
+                <div className="text-sm font-medium text-amber-900">
+                  Alertas de SLA (usa os mesmos destinatários acima)
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-1">
+                    <Label>Dias parada na etapa</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      placeholder="ex: 7 (vazio = desativado)"
+                      value={d.sla_stage_days ?? ""}
+                      onChange={(e) =>
+                        setD({
+                          sla_stage_days: e.target.value === "" ? null : Math.max(1, Number(e.target.value)),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Dias sem interação</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      placeholder="ex: 14 (vazio = desativado)"
+                      value={d.sla_no_interaction_days ?? ""}
+                      onChange={(e) =>
+                        setD({
+                          sla_no_interaction_days:
+                            e.target.value === "" ? null : Math.max(1, Number(e.target.value)),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Template de SLA</Label>
+                    <Select
+                      value={d.sla_template_name}
+                      onValueChange={(v) => setD({ sla_template_name: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(TEMPLATES).map(([name, tpl]) => (
+                          <SelectItem key={name} value={name}>
+                            {tpl.displayName ?? name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <p className="text-xs text-amber-800/80">
+                  Cada alerta é enviado uma única vez por imobiliária e período (sem spam).
+                  Ao mover a imobiliária de etapa ou registrar uma interação, o relógio reinicia.
+                </p>
+              </div>
+
               <div className="flex justify-end">
                 <Button
                   size="sm"
