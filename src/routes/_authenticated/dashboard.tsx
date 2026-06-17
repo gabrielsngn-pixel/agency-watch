@@ -34,6 +34,7 @@ const TONE_COLOR: Record<string, string> = {
 };
 
 function DashboardPage() {
+  const queryClient = useQueryClient();
   const [agencyFilter, setAgencyFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
