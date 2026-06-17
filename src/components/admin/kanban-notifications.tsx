@@ -570,3 +570,65 @@ function ToggleField({
     </label>
   );
 }
+
+function EmailPreviewDialog({
+  templateName,
+  onClose,
+}: {
+  templateName: string | null;
+  onClose: () => void;
+}) {
+  const previewFn = useServerFn(previewEmailTemplate);
+  const open = !!templateName;
+  const query = useQuery({
+    queryKey: ["email-template-preview", templateName],
+    queryFn: () => previewFn({ data: { templateName: templateName! } }),
+    enabled: open,
+    staleTime: 60_000,
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-3xl p-0 gap-0 overflow-hidden">
+        <DialogHeader className="px-6 pt-6 pb-3">
+          <DialogTitle className="flex items-center gap-2">
+            <Eye className="h-4 w-4" />
+            Pré-visualização do e-mail
+          </DialogTitle>
+          <DialogDescription className="text-xs">
+            Renderizado com dados de exemplo. O conteúdo real é montado por
+            imobiliária no momento do envio (nome, cidade, etapa, dias etc.).
+          </DialogDescription>
+        </DialogHeader>
+        <div className="border-t bg-muted/30">
+          {query.isLoading && (
+            <div className="flex items-center justify-center py-12 text-muted-foreground text-sm gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Renderizando…
+            </div>
+          )}
+          {query.error && (
+            <div className="px-6 py-8 text-sm text-destructive">
+              Erro ao renderizar: {(query.error as Error).message}
+            </div>
+          )}
+          {query.data && (
+            <div className="space-y-0">
+              <div className="px-6 py-3 border-b bg-background">
+                <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  Assunto
+                </div>
+                <div className="text-sm font-medium">{query.data.subject}</div>
+              </div>
+              <iframe
+                title="Pré-visualização do e-mail"
+                srcDoc={query.data.html}
+                className="w-full h-[60vh] bg-white"
+              />
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
