@@ -14,6 +14,33 @@ const SITE_NAME = 'agency-watch'
 const SENDER_DOMAIN = 'notify.outreach.loftinsights.com.br'
 const FROM_DOMAIN = 'notify.outreach.loftinsights.com.br'
 
+type EmailPayload = Record<string, unknown> & {
+  from?: string
+  html?: string
+  idempotency_key?: string
+  label?: string
+  message_id?: string
+  purpose?: string
+  queued_at?: string
+  recipient_email?: string
+  sender_domain?: string
+  subject?: string
+  suppressed?: boolean
+  template_data?: Record<string, unknown>
+  template_name?: string
+  text?: string
+  to?: string
+  unsubscribe_token?: string
+  run_id?: string
+}
+
+type QueueMessage = {
+  msg_id: number
+  read_ct?: number
+  enqueued_at?: string
+  message: EmailPayload
+}
+
 // Check if an error is a rate-limit (429) response.
 // Uses EmailAPIError.status when available (email-js >=0.x with structured errors),
 // falls back to parsing the error message for older versions.
@@ -50,9 +77,9 @@ function generateToken(): string {
 }
 
 async function prepareQueuedTransactionalEmail(
-  supabase: SupabaseClient<any, any>,
-  payload: Record<string, any>
-): Promise<Record<string, any>> {
+  supabase: SupabaseClient,
+  payload: EmailPayload
+): Promise<EmailPayload> {
   if (payload.html && payload.to && payload.purpose) {
     return payload
   }
@@ -150,9 +177,9 @@ async function prepareQueuedTransactionalEmail(
 }
 
 async function moveToDlq(
-  supabase: SupabaseClient<any, any>,
+  supabase: SupabaseClient,
   queue: string,
-  msg: { msg_id: number; message: Record<string, unknown> },
+  msg: QueueMessage,
   reason: string
 ): Promise<void> {
   const payload = msg.message
@@ -202,7 +229,7 @@ export const Route = createFileRoute("/lovable/email/queue/process")({
           return Response.json({ error: 'Forbidden' }, { status: 403 })
         }
 
-        const supabase: SupabaseClient<any, any> = createClient(supabaseUrl, supabaseServiceKey)
+        const supabase: SupabaseClient = createClient(supabaseUrl, supabaseServiceKey)
 
         // 1. Check rate-limit cooldown and read queue config
         const { data: state } = await supabase
@@ -236,13 +263,14 @@ export const Route = createFileRoute("/lovable/email/queue/process")({
             continue
           }
 
-          if (!messages?.length) continue
+          const queueMessages = (messages ?? []) as QueueMessage[]
+          if (!queueMessages.length) continue
 
           // Retry budget is based on real send failures, not pgmq read_ct.
           const messageIds = Array.from(
             new Set(
-              messages
-                .map((msg: any) =>
+              queueMessages
+                .map((msg) =>
                   msg?.message?.message_id && typeof msg.message.message_id === 'string'
                     ? msg.message.message_id
                     : null
@@ -275,8 +303,8 @@ export const Route = createFileRoute("/lovable/email/queue/process")({
             }
           }
 
-          for (let i = 0; i < messages.length; i++) {
-            const msg = messages[i]
+          for (let i = 0; i < queueMessages.length; i++) {
+            const msg = queueMessages[i]
             let payload = msg.message
             const failedAttempts =
               payload?.message_id && typeof payload.message_id === 'string'
