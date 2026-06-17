@@ -1,6 +1,9 @@
 import React from 'react'
-import { Body, Container, Head, Heading, Hr, Html, Preview, Section, Text } from '@react-email/components'
+import { Body, Button, Container, Head, Heading, Hr, Html, Preview, Section, Text } from '@react-email/components'
 import type { TemplateEntry } from './registry'
+
+const FORM_URL =
+  'https://docs.google.com/forms/d/e/1FAIpQLScvK9KeJ_Ftv2fGiEa4lGBkVuuDqM-_xrqtt0SSG2X6fEw66w/viewform?usp=dialog'
 
 interface Props {
   agency_name?: string
@@ -9,6 +12,7 @@ interface Props {
   previous_status?: string
   new_status?: string
   moved_by?: string
+  form_url?: string
 }
 
 const KanbanStageChange = ({
@@ -18,6 +22,7 @@ const KanbanStageChange = ({
   previous_status = '—',
   new_status = '—',
   moved_by = 'sistema',
+  form_url = FORM_URL,
 }: Props) => {
   const location = [agency_city, agency_state].filter(Boolean).join(' / ')
   return (
@@ -38,6 +43,14 @@ const KanbanStageChange = ({
             <Text style={valueHighlight}>{new_status}</Text>
           </Section>
           <Text style={text}>Movido por: <strong>{moved_by}</strong></Text>
+          <Section style={ctaWrap}>
+            <Button href={form_url} style={ctaButton}>
+              Atualizar status no formulário
+            </Button>
+            <Text style={ctaHint}>
+              Clique acima para registrar a nova interação ou atualizar dados da imobiliária.
+            </Text>
+          </Section>
           <Text style={footer}>Agency Watch — notificação automática</Text>
         </Container>
       </Body>
