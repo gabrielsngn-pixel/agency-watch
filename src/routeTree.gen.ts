@@ -26,6 +26,7 @@ import { Route as AuthenticatedSettingsSlackRouteImport } from './routes/_authen
 import { Route as AuthenticatedSettingsHubspotRouteImport } from './routes/_authenticated/settings.hubspot'
 import { Route as AuthenticatedPortfolioNewRouteImport } from './routes/_authenticated/portfolio.new'
 import { Route as AuthenticatedPortfolioAgencyIdRouteImport } from './routes/_authenticated/portfolio.$agencyId'
+import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp.webhook'
 import { Route as ApiPublicSlackInteractionsRouteImport } from './routes/api/public/slack.interactions'
 import { Route as ApiPublicSlackHealthRouteImport } from './routes/api/public/slack.health'
@@ -128,6 +129,12 @@ const AuthenticatedPortfolioAgencyIdRoute =
     path: '/$agencyId',
     getParentRoute: () => AuthenticatedPortfolioRoute,
   } as any)
+const LovableEmailQueueProcessRoute =
+  LovableEmailQueueProcessRouteImport.update({
+    id: '/lovable/email/queue/process',
+    path: '/lovable/email/queue/process',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicWhatsappWebhookRoute =
   ApiPublicWhatsappWebhookRouteImport.update({
     id: '/api/public/whatsapp/webhook',
@@ -205,6 +212,7 @@ export interface FileRoutesByFullPath {
   '/api/public/slack/health': typeof ApiPublicSlackHealthRoute
   '/api/public/slack/interactions': typeof ApiPublicSlackInteractionsRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -231,6 +239,7 @@ export interface FileRoutesByTo {
   '/api/public/slack/health': typeof ApiPublicSlackHealthRoute
   '/api/public/slack/interactions': typeof ApiPublicSlackInteractionsRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -260,6 +269,7 @@ export interface FileRoutesById {
   '/api/public/slack/health': typeof ApiPublicSlackHealthRoute
   '/api/public/slack/interactions': typeof ApiPublicSlackInteractionsRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -289,6 +299,7 @@ export interface FileRouteTypes {
     | '/api/public/slack/health'
     | '/api/public/slack/interactions'
     | '/api/public/whatsapp/webhook'
+    | '/lovable/email/queue/process'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -315,6 +326,7 @@ export interface FileRouteTypes {
     | '/api/public/slack/health'
     | '/api/public/slack/interactions'
     | '/api/public/whatsapp/webhook'
+    | '/lovable/email/queue/process'
   id:
     | '__root__'
     | '/'
@@ -343,6 +355,7 @@ export interface FileRouteTypes {
     | '/api/public/slack/health'
     | '/api/public/slack/interactions'
     | '/api/public/whatsapp/webhook'
+    | '/lovable/email/queue/process'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -358,6 +371,7 @@ export interface RootRouteChildren {
   ApiPublicSlackHealthRoute: typeof ApiPublicSlackHealthRoute
   ApiPublicSlackInteractionsRoute: typeof ApiPublicSlackInteractionsRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
+  LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -480,6 +494,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/portfolio/$agencyId'
       preLoaderRoute: typeof AuthenticatedPortfolioAgencyIdRouteImport
       parentRoute: typeof AuthenticatedPortfolioRoute
+    }
+    '/lovable/email/queue/process': {
+      id: '/lovable/email/queue/process'
+      path: '/lovable/email/queue/process'
+      fullPath: '/lovable/email/queue/process'
+      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/whatsapp/webhook': {
       id: '/api/public/whatsapp/webhook'
@@ -609,6 +630,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicSlackHealthRoute: ApiPublicSlackHealthRoute,
   ApiPublicSlackInteractionsRoute: ApiPublicSlackInteractionsRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
+  LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
