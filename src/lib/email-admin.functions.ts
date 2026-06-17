@@ -1,5 +1,8 @@
+import * as React from 'react'
 import { createServerFn } from '@tanstack/react-start'
+import { render } from '@react-email/render'
 import { requireSupabaseAuth } from '@/integrations/supabase/auth-middleware'
+import { TEMPLATES } from '@/lib/email-templates/registry'
 
 async function getAdminClient(context: any) {
   const { data: isAdmin, error } = await context.supabase.rpc('has_role', {
