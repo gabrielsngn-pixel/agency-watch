@@ -64,18 +64,16 @@ function DashboardPage() {
     },
   });
 
-  const { data: formSubmissions = [] } = useQuery({
-    queryKey: ["form-submissions-recent"],
+  const { data: missionAlerts = [] } = useQuery({
+    queryKey: ["mission-control-alerts"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("google_form_submissions")
-        .select("id, agency_id, processing_status, error_code, response_timestamp, created_at, payload, sheet_name")
-        .order("response_timestamp", { ascending: false, nullsFirst: false })
-        .limit(50);
-      if (error) {
-        // Non-admin users may not have access; degrade gracefully
-        return [];
-      }
+        .from("mission_control_alerts")
+        .select("id, alert_type, title, description, severity, metadata, created_at, resolved_at")
+        .is("resolved_at", null)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (error) return [];
       return data ?? [];
     },
   });
