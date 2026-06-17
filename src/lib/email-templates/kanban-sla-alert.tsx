@@ -1,6 +1,9 @@
 import React from 'react'
-import { Body, Container, Head, Heading, Hr, Html, Preview, Section, Text } from '@react-email/components'
+import { Body, Button, Container, Head, Heading, Hr, Html, Preview, Section, Text } from '@react-email/components'
 import type { TemplateEntry } from './registry'
+
+const FORM_URL =
+  'https://docs.google.com/forms/d/e/1FAIpQLScvK9KeJ_Ftv2fGiEa4lGBkVuuDqM-_xrqtt0SSG2X6fEw66w/viewform?usp=dialog'
 
 interface Props {
   agency_name?: string
@@ -10,6 +13,7 @@ interface Props {
   alert_type?: 'stage_idle' | 'no_interaction' | string
   days_idle?: number
   threshold_days?: number
+  form_url?: string
 }
 
 const labelByType: Record<string, string> = {
