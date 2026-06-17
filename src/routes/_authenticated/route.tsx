@@ -27,6 +27,7 @@ const NAV = [
   { to: "/consultants", label: "Consultores", icon: Users, managerOnly: true },
   { to: "/settings/hubspot", label: "HubSpot", icon: Settings, managerOnly: true },
   { to: "/settings/users", label: "Usuários", icon: Users, adminOnly: true },
+  { to: "/admin", label: "Painel Administrativo", icon: ShieldCheck, adminOnly: true },
 ];
 
 function AuthedLayout() {
