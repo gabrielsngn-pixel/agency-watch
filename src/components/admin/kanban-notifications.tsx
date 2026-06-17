@@ -448,24 +448,35 @@ function StageItem({
                   }
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 md:col-span-1">
                 <Label className="text-xs text-muted-foreground">Template do alerta</Label>
-                <Select
-                  value={d.sla_template_name}
-                  onValueChange={(v) => onChange({ sla_template_name: v })}
-                >
-                  <SelectTrigger>
-                    <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(TEMPLATES).map(([name, tpl]) => (
-                      <SelectItem key={name} value={name}>
-                        {tpl.displayName ?? name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Select
+                    value={d.sla_template_name}
+                    onValueChange={(v) => onChange({ sla_template_name: v })}
+                  >
+                    <SelectTrigger>
+                      <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(TEMPLATES).map(([name, tpl]) => (
+                        <SelectItem key={name} value={name}>
+                          {tpl.displayName ?? name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => onPreview(d.sla_template_name)}
+                    title="Visualizar e-mail"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           </Section>
