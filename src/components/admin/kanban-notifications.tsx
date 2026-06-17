@@ -86,6 +86,7 @@ export function KanbanNotifications() {
   });
 
   const [drafts, setDrafts] = useState<Record<string, Settings>>({});
+  const [previewName, setPreviewName] = useState<string | null>(null);
 
   useEffect(() => {
     if (!stagesQuery.data || !settingsQuery.data) return;
