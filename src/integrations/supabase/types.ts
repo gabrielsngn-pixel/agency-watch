@@ -875,6 +875,47 @@ export type Database = {
           },
         ]
       }
+      kanban_sla_alert_log: {
+        Row: {
+          agency_id: string
+          alert_type: string
+          anchor_at: string
+          id: string
+          recipients: string[]
+          sent_at: string
+          stage_key: string
+          threshold_days: number
+        }
+        Insert: {
+          agency_id: string
+          alert_type: string
+          anchor_at: string
+          id?: string
+          recipients?: string[]
+          sent_at?: string
+          stage_key: string
+          threshold_days: number
+        }
+        Update: {
+          agency_id?: string
+          alert_type?: string
+          anchor_at?: string
+          id?: string
+          recipients?: string[]
+          sent_at?: string
+          stage_key?: string
+          threshold_days?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kanban_sla_alert_log_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "real_estate_agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kanban_stage_notifications: {
         Row: {
           created_at: string
@@ -883,6 +924,9 @@ export type Database = {
           notify_admins: boolean
           notify_consultant: boolean
           notify_regional_director: boolean
+          sla_no_interaction_days: number | null
+          sla_stage_days: number | null
+          sla_template_name: string
           stage_key: string
           template_name: string
           updated_at: string
@@ -894,6 +938,9 @@ export type Database = {
           notify_admins?: boolean
           notify_consultant?: boolean
           notify_regional_director?: boolean
+          sla_no_interaction_days?: number | null
+          sla_stage_days?: number | null
+          sla_template_name?: string
           stage_key: string
           template_name?: string
           updated_at?: string
@@ -905,6 +952,9 @@ export type Database = {
           notify_admins?: boolean
           notify_consultant?: boolean
           notify_regional_director?: boolean
+          sla_no_interaction_days?: number | null
+          sla_stage_days?: number | null
+          sla_template_name?: string
           stage_key?: string
           template_name?: string
           updated_at?: string
@@ -1437,6 +1487,7 @@ export type Database = {
         }
         Returns: number
       }
+      process_kanban_sla_alerts: { Args: never; Returns: Json }
       prune_google_form_submissions: {
         Args: {
           p_keep_hashes: string[]
