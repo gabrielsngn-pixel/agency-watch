@@ -263,7 +263,7 @@ function ImportClientsPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${templateKey === "complete" ? "completo" : "simplificado"}_${safeName}.xlsx`;
+      a.download = `${templateKey === "complete" ? "completo" : "simplificado"}_${safeName}.csv`;
       a.click();
       URL.revokeObjectURL(url);
 
