@@ -67,6 +67,7 @@ export const STATUS_PRIORITY: Record<NegotiationStatus, number> = {
   "Reunião agendada": 7,
   "Conversas iniciadas": 6,
   "Aguardando base": 5,
+  "Em precificação": 7,
   "Pipeline de Prospecção": 4,
   "Stand by": 2,
   "Convertida": 3,
