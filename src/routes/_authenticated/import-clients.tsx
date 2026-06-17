@@ -150,6 +150,11 @@ function ImportClientsPage() {
           [col]: normalizeValue(col, value),
           _cepDerived: { ...r._cepDerived, [col]: false },
         };
+        // Imóvel comercial força subtipo "Casa".
+        const tipo = String(updated.tipo_imovel ?? "").toLowerCase();
+        if (tipo.includes("comercial")) {
+          updated.subtipo_imovel = "Casa";
+        }
         updated._errors = computeErrors(updated, templateKey);
         return updated;
       })
