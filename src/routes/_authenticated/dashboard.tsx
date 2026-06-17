@@ -110,12 +110,6 @@ function DashboardPage() {
   const weekEndKey = endWeek.toISOString().slice(0, 10);
   const nextThisWeek = agencies.filter((agency: any) => agency.next_step_date && agency.next_step_date >= todayKey && agency.next_step_date < weekEndKey).length;
   const clientBases = activities.filter((item: any) => item.activity_type === "client_base_received").length;
-  const formsTotal = formSubmissions.length;
-  const formsWeek = formSubmissions.filter((s: any) => {
-    const d = s.response_timestamp ? new Date(s.response_timestamp) : null;
-    return d && d >= startWeek;
-  }).length;
-  const formsPending = formSubmissions.filter((s: any) => s.processing_status !== "processed").length;
   const directors = [...new Set(agencies.map((agency: any) => agency.regional_director).filter(Boolean))].sort();
   const filteredActivities = useMemo(() => activities.filter((item: any) => {
     const agency: any = agencyById.get(item.agency_id);
