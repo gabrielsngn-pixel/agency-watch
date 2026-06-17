@@ -1,12 +1,45 @@
 import { sendLovableEmail } from '@lovable.dev/email-js'
+import * as React from 'react'
+import { render } from '@react-email/render'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { createFileRoute } from '@tanstack/react-router'
+import { TEMPLATES } from '@/lib/email-templates/registry'
 
 const MAX_RETRIES = 5
 const DEFAULT_BATCH_SIZE = 10
 const DEFAULT_SEND_DELAY_MS = 200
 const DEFAULT_AUTH_TTL_MINUTES = 15
 const DEFAULT_TRANSACTIONAL_TTL_MINUTES = 60
+const SITE_NAME = 'agency-watch'
+const SENDER_DOMAIN = 'notify.outreach.loftinsights.com.br'
+const FROM_DOMAIN = 'notify.outreach.loftinsights.com.br'
+
+type EmailPayload = Record<string, unknown> & {
+  from?: string
+  html?: string
+  idempotency_key?: string
+  label?: string
+  message_id?: string
+  purpose?: string
+  queued_at?: string
+  recipient_email?: string
+  sender_domain?: string
+  subject?: string
+  suppressed?: boolean
+  template_data?: Record<string, unknown>
+  template_name?: string
+  text?: string
+  to?: string
+  unsubscribe_token?: string
+  run_id?: string
+}
+
+type QueueMessage = {
+  msg_id: number
+  read_ct?: number
+  enqueued_at?: string
+  message: EmailPayload
+}
 
 // Check if an error is a rate-limit (429) response.
 // Uses EmailAPIError.status when available (email-js >=0.x with structured errors),
@@ -35,17 +68,125 @@ function getRetryAfterSeconds(error: unknown): number {
   return 60
 }
 
+function generateToken(): string {
+  const bytes = new Uint8Array(32)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+async function prepareQueuedTransactionalEmail(
+  supabase: SupabaseClient,
+  payload: EmailPayload
+): Promise<EmailPayload> {
+  if (payload.html && payload.to && payload.purpose) {
+    return payload
+  }
+
+  const templateName = payload.template_name
+  const recipientEmail = payload.recipient_email
+  if (!templateName || !recipientEmail) {
+    return payload
+  }
+
+  const template = TEMPLATES[templateName]
+  if (!template) {
+    throw new Error(`Template '${templateName}' not found`)
+  }
+
+  const effectiveRecipient = template.to || recipientEmail
+  const normalizedEmail = String(effectiveRecipient).toLowerCase()
+  const { data: suppressed, error: suppressionError } = await supabase
+    .from('suppressed_emails')
+    .select('id')
+    .eq('email', normalizedEmail)
+    .maybeSingle()
+
+  if (suppressionError) {
+    throw new Error('Failed to verify suppression status')
+  }
+
+  if (suppressed) {
+    return { ...payload, suppressed: true, to: effectiveRecipient, label: templateName }
+  }
+
+  let unsubscribeToken = ''
+  const { data: existingToken, error: tokenLookupError } = await supabase
+    .from('email_unsubscribe_tokens')
+    .select('token, used_at')
+    .eq('email', normalizedEmail)
+    .maybeSingle()
+
+  if (tokenLookupError) {
+    throw new Error('Failed to look up unsubscribe token')
+  }
+
+  if (existingToken && !existingToken.used_at) {
+    unsubscribeToken = existingToken.token
+  } else if (!existingToken) {
+    unsubscribeToken = generateToken()
+    const { error: tokenError } = await supabase
+      .from('email_unsubscribe_tokens')
+      .upsert(
+        { token: unsubscribeToken, email: normalizedEmail },
+        { onConflict: 'email', ignoreDuplicates: true }
+      )
+    if (tokenError) {
+      throw new Error('Failed to create unsubscribe token')
+    }
+
+    const { data: storedToken, error: storedTokenError } = await supabase
+      .from('email_unsubscribe_tokens')
+      .select('token')
+      .eq('email', normalizedEmail)
+      .maybeSingle()
+    if (storedTokenError || !storedToken) {
+      throw new Error('Failed to confirm unsubscribe token storage')
+    }
+    unsubscribeToken = storedToken.token
+  } else {
+    return { ...payload, suppressed: true, to: effectiveRecipient, label: templateName }
+  }
+
+  const templateData = payload.template_data && typeof payload.template_data === 'object'
+    ? payload.template_data
+    : {}
+  const element = React.createElement(template.component, templateData)
+  const html = await render(element)
+  const plainText = await render(element, { plainText: true })
+  const subject = typeof template.subject === 'function'
+    ? template.subject(templateData)
+    : template.subject
+
+  return {
+    ...payload,
+    message_id: payload.message_id || crypto.randomUUID(),
+    to: effectiveRecipient,
+    from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
+    sender_domain: SENDER_DOMAIN,
+    subject,
+    html,
+    text: plainText,
+    purpose: 'transactional',
+    label: templateName,
+    idempotency_key: payload.idempotency_key || crypto.randomUUID(),
+    unsubscribe_token: unsubscribeToken,
+    queued_at: payload.queued_at || new Date().toISOString(),
+  }
+}
+
 async function moveToDlq(
-  supabase: SupabaseClient<any, any>,
+  supabase: SupabaseClient,
   queue: string,
-  msg: { msg_id: number; message: Record<string, unknown> },
+  msg: QueueMessage,
   reason: string
 ): Promise<void> {
   const payload = msg.message
   await supabase.from('email_send_log').insert({
-    message_id: payload.message_id,
-    template_name: (payload.label || queue) as string,
-    recipient_email: payload.to,
+    message_id: payload.message_id || payload.idempotency_key || String(msg.msg_id),
+    template_name: (payload.label || payload.template_name || queue) as string,
+    recipient_email: payload.to || payload.recipient_email,
     status: 'dlq',
     error_message: reason,
   })
@@ -88,7 +229,7 @@ export const Route = createFileRoute("/lovable/email/queue/process")({
           return Response.json({ error: 'Forbidden' }, { status: 403 })
         }
 
-        const supabase: SupabaseClient<any, any> = createClient(supabaseUrl, supabaseServiceKey)
+        const supabase: SupabaseClient = createClient(supabaseUrl, supabaseServiceKey)
 
         // 1. Check rate-limit cooldown and read queue config
         const { data: state } = await supabase
@@ -122,13 +263,14 @@ export const Route = createFileRoute("/lovable/email/queue/process")({
             continue
           }
 
-          if (!messages?.length) continue
+          const queueMessages = (messages ?? []) as QueueMessage[]
+          if (!queueMessages.length) continue
 
           // Retry budget is based on real send failures, not pgmq read_ct.
           const messageIds = Array.from(
             new Set(
-              messages
-                .map((msg: any) =>
+              queueMessages
+                .map((msg) =>
                   msg?.message?.message_id && typeof msg.message.message_id === 'string'
                     ? msg.message.message_id
                     : null
@@ -161,9 +303,9 @@ export const Route = createFileRoute("/lovable/email/queue/process")({
             }
           }
 
-          for (let i = 0; i < messages.length; i++) {
-            const msg = messages[i]
-            const payload = msg.message
+          for (let i = 0; i < queueMessages.length; i++) {
+            const msg = queueMessages[i]
+            let payload = msg.message
             const failedAttempts =
               payload?.message_id && typeof payload.message_id === 'string'
                 ? (failedAttemptsByMessageId.get(payload.message_id) ?? 0)
@@ -221,15 +363,32 @@ export const Route = createFileRoute("/lovable/email/queue/process")({
             }
 
             try {
+              if (queue === 'transactional_emails') {
+                payload = await prepareQueuedTransactionalEmail(supabase, payload)
+                if (payload.suppressed) {
+                  await supabase.from('email_send_log').insert({
+                    message_id: payload.message_id || String(msg.msg_id),
+                    template_name: payload.label || payload.template_name || queue,
+                    recipient_email: payload.to || payload.recipient_email,
+                    status: 'suppressed',
+                  })
+                  await supabase.rpc('delete_email', {
+                    queue_name: queue,
+                    message_id: msg.msg_id,
+                  })
+                  continue
+                }
+              }
+
               await sendLovableEmail(
                 {
                   run_id: payload.run_id,
-                  to: payload.to,
-                  from: payload.from,
-                  sender_domain: payload.sender_domain,
-                  subject: payload.subject,
-                  html: payload.html,
-                  text: payload.text,
+                  to: payload.to ?? '',
+                  from: payload.from ?? '',
+                  sender_domain: payload.sender_domain ?? '',
+                  subject: payload.subject ?? '',
+                  html: payload.html ?? '',
+                  text: payload.text ?? '',
                   purpose: payload.purpose,
                   label: payload.label,
                   idempotency_key: payload.idempotency_key,
