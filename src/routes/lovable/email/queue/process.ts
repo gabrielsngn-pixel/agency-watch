@@ -157,9 +157,9 @@ async function moveToDlq(
 ): Promise<void> {
   const payload = msg.message
   await supabase.from('email_send_log').insert({
-    message_id: payload.message_id,
-    template_name: (payload.label || queue) as string,
-    recipient_email: payload.to,
+    message_id: payload.message_id || payload.idempotency_key || String(msg.msg_id),
+    template_name: (payload.label || payload.template_name || queue) as string,
+    recipient_email: payload.to || payload.recipient_email,
     status: 'dlq',
     error_message: reason,
   })
