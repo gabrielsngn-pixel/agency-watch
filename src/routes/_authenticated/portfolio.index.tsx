@@ -21,8 +21,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, AlertTriangle, LayoutGrid, List, GripVertical } from "lucide-react";
+import { Plus, Search, AlertTriangle, LayoutGrid, List, Clock } from "lucide-react";
 import { NEGOTIATION_STATUSES, BR_STATES, STATUS_TONE, daysSince, type NegotiationStatus } from "@/lib/constants";
+import { useKanbanStages, evaluateSla, type KanbanStage } from "@/hooks/use-kanban-stages";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
