@@ -212,6 +212,7 @@ function EditAgencyDialog({ agency, onSaved, triggerLabel, triggerVariant }: { a
     feedback: agency.feedback ?? "",
     consultant_id: (agency.consultant_id ?? "") as string,
     c_level_support_needed: agency.c_level_support_needed ?? false,
+    notify_consultant_on_change: agency.notify_consultant_on_change ?? true,
   });
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
 
