@@ -9,13 +9,23 @@ const TONE_CLASS: Record<string, string> = {
   destructive: "bg-destructive/10 text-destructive border-destructive/30 [--dot:var(--destructive)]",
 };
 
-export function StatusBadge({ status, className }: { status: NegotiationStatus | string; className?: string }) {
-  const tone = STATUS_TONE[status as NegotiationStatus] ?? "neutral";
+export function StatusBadge({
+  status,
+  className,
+  label,
+  tone: toneOverride,
+}: {
+  status: NegotiationStatus | string;
+  className?: string;
+  label?: string;
+  tone?: string;
+}) {
+  const tone = toneOverride ?? STATUS_TONE[status as NegotiationStatus] ?? "neutral";
   return (
     <span
       className={cn(
         "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium border whitespace-nowrap tracking-wide",
-        TONE_CLASS[tone],
+        TONE_CLASS[tone] ?? TONE_CLASS.neutral,
         className,
       )}
     >
@@ -23,7 +33,7 @@ export function StatusBadge({ status, className }: { status: NegotiationStatus |
         className="h-1.5 w-1.5 rounded-full"
         style={{ background: "var(--dot)", boxShadow: "0 0 8px var(--dot)" }}
       />
-      {status}
+      {label ?? status}
     </span>
   );
 }
