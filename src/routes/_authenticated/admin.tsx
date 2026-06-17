@@ -60,12 +60,16 @@ function AdminPanel() {
           <TabsList>
             <TabsTrigger value="kanban">Status do Kanban</TabsTrigger>
             <TabsTrigger value="templates">Templates de comunicação</TabsTrigger>
+            <TabsTrigger value="email-test">Teste de E-mail</TabsTrigger>
           </TabsList>
           <TabsContent value="kanban" className="space-y-6">
             <KanbanStagesAdmin />
           </TabsContent>
           <TabsContent value="templates" className="space-y-6">
             <TemplatesAdmin />
+          </TabsContent>
+          <TabsContent value="email-test" className="space-y-6">
+            <EmailTestAdmin />
           </TabsContent>
         </Tabs>
       </div>
