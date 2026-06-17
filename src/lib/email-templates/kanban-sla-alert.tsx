@@ -57,6 +57,14 @@ const KanbanSlaAlert = ({
           <Text style={text}>
             Sugerimos revisar essa imobiliária e registrar uma nova interação ou movê-la para a próxima etapa.
           </Text>
+          <Section style={ctaWrap}>
+            <Button href={form_url} style={ctaButton}>
+              Atualizar status no formulário
+            </Button>
+            <Text style={ctaHint}>
+              Clique acima para registrar a nova interação e zerar o contador de SLA.
+            </Text>
+          </Section>
           <Text style={footer}>Agency Watch — alerta automático de SLA</Text>
         </Container>
       </Body>
