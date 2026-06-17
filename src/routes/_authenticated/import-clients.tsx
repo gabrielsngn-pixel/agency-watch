@@ -31,7 +31,7 @@ import {
   type ImportColumn,
   type TemplateKey,
 } from "@/lib/client-import/template";
-import { buildImportXlsx, type StandardRow } from "@/lib/client-import/exporter";
+import { buildImportCsv, type StandardRow } from "@/lib/client-import/exporter";
 
 export const Route = createFileRoute("/_authenticated/import-clients")({
   component: ImportClientsPage,
@@ -234,15 +234,15 @@ function ImportClientsPage() {
     try {
       // Exporta TODAS as linhas — pendências são apontadas mas não impedem.
       const allRows: StandardRow[] = rows.map(({ _errors, _idx, _cepDerived, ...rest }) => rest);
-      const blob = buildImportXlsx(allRows, templateKey);
+      const blob = buildImportCsv(allRows, templateKey);
 
       const ts = new Date().toISOString().replace(/[:.]/g, "-");
       const safeName = (filename || "import").replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9-_]+/g, "_");
-      const path = `${user.id}/${ts}__${templateKey}__${safeName}.xlsx`;
+      const path = `${user.id}/${ts}__${templateKey}__${safeName}.csv`;
       const { error: upErr } = await supabase.storage
         .from("client-imports")
         .upload(path, blob, {
-          contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          contentType: "text/csv;charset=utf-8;",
           upsert: false,
         });
       if (upErr) throw upErr;
@@ -263,7 +263,7 @@ function ImportClientsPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${templateKey === "complete" ? "completo" : "simplificado"}_${safeName}.xlsx`;
+      a.download = `${templateKey === "complete" ? "completo" : "simplificado"}_${safeName}.csv`;
       a.click();
       URL.revokeObjectURL(url);
 

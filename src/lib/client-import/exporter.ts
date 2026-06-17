@@ -8,8 +8,8 @@ import {
 
 export type StandardRow = Partial<Record<ImportColumn, string | number>>;
 
-/** Gera o XLSX padronizado conforme o template selecionado. */
-export function buildImportXlsx(rows: StandardRow[], templateKey: TemplateKey = "simplified"): Blob {
+/** Gera o CSV padronizado conforme o template selecionado. */
+export function buildImportCsv(rows: StandardRow[], templateKey: TemplateKey = "simplified"): Blob {
   const cols = TEMPLATES[templateKey].columns;
   const data = rows.map((r) => {
     const out: Record<string, any> = {};
@@ -17,14 +17,12 @@ export function buildImportXlsx(rows: StandardRow[], templateKey: TemplateKey = 
     return out;
   });
   const ws = XLSX.utils.json_to_sheet(data, { header: [...cols] });
-  ws["!cols"] = cols.map((c) => ({ wch: Math.max(12, COLUMN_LABELS[c].length + 2) }));
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Clientes");
-  const arr = XLSX.write(wb, { type: "array", bookType: "xlsx" });
-  return new Blob([arr], {
-    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  });
+  const csv = XLSX.utils.sheet_to_csv(ws, { FS: ",", RS: "\n" });
+  // BOM para Excel reconhecer UTF-8 corretamente
+  return new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
 }
 
-/** Compat com nome antigo. */
-export const buildCrediprontoXlsx = (rows: StandardRow[]) => buildImportXlsx(rows, "simplified");
+/** Compat com nomes antigos. */
+export const buildImportXlsx = buildImportCsv;
+export const buildCrediprontoXlsx = (rows: StandardRow[]) => buildImportCsv(rows, "simplified");
+
