@@ -212,10 +212,16 @@ export function KanbanNotifications() {
               }
               onSave={() => saveMutation.mutate(d)}
               saving={saveMutation.isPending}
+              onPreview={(name) => setPreviewName(name)}
             />
           );
         })}
       </Accordion>
+
+      <EmailPreviewDialog
+        templateName={previewName}
+        onClose={() => setPreviewName(null)}
+      />
     </div>
   );
 }
