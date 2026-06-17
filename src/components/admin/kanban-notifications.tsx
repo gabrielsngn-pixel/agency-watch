@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useKanbanStages } from "@/hooks/use-kanban-stages";
 import { TEMPLATES } from "@/lib/email-templates/registry";
+import { previewEmailTemplate } from "@/lib/email-admin.functions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,8 +26,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   ArrowRightLeft,
   Clock,
+  Eye,
   Loader2,
   Mail,
   Play,
@@ -76,6 +86,7 @@ export function KanbanNotifications() {
   });
 
   const [drafts, setDrafts] = useState<Record<string, Settings>>({});
+  const [previewName, setPreviewName] = useState<string | null>(null);
 
   useEffect(() => {
     if (!stagesQuery.data || !settingsQuery.data) return;
@@ -202,10 +213,16 @@ export function KanbanNotifications() {
               }
               onSave={() => saveMutation.mutate(d)}
               saving={saveMutation.isPending}
+              onPreview={(name) => setPreviewName(name)}
             />
           );
         })}
       </Accordion>
+
+      <EmailPreviewDialog
+        templateName={previewName}
+        onClose={() => setPreviewName(null)}
+      />
     </div>
   );
 }
@@ -238,12 +255,14 @@ function StageItem({
   onChange,
   onSave,
   saving,
+  onPreview,
 }: {
   stage: any;
   draft: Settings;
   onChange: (patch: Partial<Settings>) => void;
   onSave: () => void;
   saving: boolean;
+  onPreview: (templateName: string) => void;
 }) {
   const d = draft;
   const recipientCount = useMemo(() => {
@@ -361,22 +380,33 @@ function StageItem({
           >
             <div className="space-y-1.5 max-w-md">
               <Label className="text-xs text-muted-foreground">Template</Label>
-              <Select
-                value={d.template_name}
-                onValueChange={(v) => onChange({ template_name: v })}
-              >
-                <SelectTrigger>
-                  <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(TEMPLATES).map(([name, tpl]) => (
-                    <SelectItem key={name} value={name}>
-                      {tpl.displayName ?? name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select
+                  value={d.template_name}
+                  onValueChange={(v) => onChange({ template_name: v })}
+                >
+                  <SelectTrigger>
+                    <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(TEMPLATES).map(([name, tpl]) => (
+                      <SelectItem key={name} value={name}>
+                        {tpl.displayName ?? name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onPreview(d.template_name)}
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  Visualizar
+                </Button>
+              </div>
             </div>
           </Section>
 
@@ -427,24 +457,35 @@ function StageItem({
                   }
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 md:col-span-1">
                 <Label className="text-xs text-muted-foreground">Template do alerta</Label>
-                <Select
-                  value={d.sla_template_name}
-                  onValueChange={(v) => onChange({ sla_template_name: v })}
-                >
-                  <SelectTrigger>
-                    <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(TEMPLATES).map(([name, tpl]) => (
-                      <SelectItem key={name} value={name}>
-                        {tpl.displayName ?? name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Select
+                    value={d.sla_template_name}
+                    onValueChange={(v) => onChange({ sla_template_name: v })}
+                  >
+                    <SelectTrigger>
+                      <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(TEMPLATES).map(([name, tpl]) => (
+                        <SelectItem key={name} value={name}>
+                          {tpl.displayName ?? name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => onPreview(d.sla_template_name)}
+                    title="Visualizar e-mail"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           </Section>
@@ -527,5 +568,67 @@ function ToggleField({
       <Switch checked={value} onCheckedChange={onChange} />
       <span className="text-sm">{label}</span>
     </label>
+  );
+}
+
+function EmailPreviewDialog({
+  templateName,
+  onClose,
+}: {
+  templateName: string | null;
+  onClose: () => void;
+}) {
+  const previewFn = useServerFn(previewEmailTemplate);
+  const open = !!templateName;
+  const query = useQuery({
+    queryKey: ["email-template-preview", templateName],
+    queryFn: () => previewFn({ data: { templateName: templateName! } }),
+    enabled: open,
+    staleTime: 60_000,
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-3xl p-0 gap-0 overflow-hidden">
+        <DialogHeader className="px-6 pt-6 pb-3">
+          <DialogTitle className="flex items-center gap-2">
+            <Eye className="h-4 w-4" />
+            Pré-visualização do e-mail
+          </DialogTitle>
+          <DialogDescription className="text-xs">
+            Renderizado com dados de exemplo. O conteúdo real é montado por
+            imobiliária no momento do envio (nome, cidade, etapa, dias etc.).
+          </DialogDescription>
+        </DialogHeader>
+        <div className="border-t bg-muted/30">
+          {query.isLoading && (
+            <div className="flex items-center justify-center py-12 text-muted-foreground text-sm gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Renderizando…
+            </div>
+          )}
+          {query.error && (
+            <div className="px-6 py-8 text-sm text-destructive">
+              Erro ao renderizar: {(query.error as Error).message}
+            </div>
+          )}
+          {query.data && (
+            <div className="space-y-0">
+              <div className="px-6 py-3 border-b bg-background">
+                <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  Assunto
+                </div>
+                <div className="text-sm font-medium">{query.data.subject}</div>
+              </div>
+              <iframe
+                title="Pré-visualização do e-mail"
+                srcDoc={query.data.html}
+                className="w-full h-[60vh] bg-white"
+              />
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

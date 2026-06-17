@@ -1,6 +1,9 @@
 import React from 'react'
-import { Body, Container, Head, Heading, Hr, Html, Preview, Section, Text } from '@react-email/components'
+import { Body, Button, Container, Head, Heading, Hr, Html, Preview, Section, Text } from '@react-email/components'
 import type { TemplateEntry } from './registry'
+
+const FORM_URL =
+  'https://docs.google.com/forms/d/e/1FAIpQLScvK9KeJ_Ftv2fGiEa4lGBkVuuDqM-_xrqtt0SSG2X6fEw66w/viewform?usp=dialog'
 
 interface Props {
   agency_name?: string
@@ -9,6 +12,7 @@ interface Props {
   previous_status?: string
   new_status?: string
   moved_by?: string
+  form_url?: string
 }
 
 const KanbanStageChange = ({
@@ -18,6 +22,7 @@ const KanbanStageChange = ({
   previous_status = '—',
   new_status = '—',
   moved_by = 'sistema',
+  form_url = FORM_URL,
 }: Props) => {
   const location = [agency_city, agency_state].filter(Boolean).join(' / ')
   return (
@@ -38,6 +43,14 @@ const KanbanStageChange = ({
             <Text style={valueHighlight}>{new_status}</Text>
           </Section>
           <Text style={text}>Movido por: <strong>{moved_by}</strong></Text>
+          <Section style={ctaWrap}>
+            <Button href={form_url} style={ctaButton}>
+              Atualizar status no formulário
+            </Button>
+            <Text style={ctaHint}>
+              Clique acima para registrar a nova interação ou atualizar dados da imobiliária.
+            </Text>
+          </Section>
           <Text style={footer}>Agency Watch — notificação automática</Text>
         </Container>
       </Body>
@@ -70,3 +83,6 @@ const value = { fontSize: '15px', color: '#475569', margin: '0 0 12px' }
 const valueHighlight = { fontSize: '16px', fontWeight: 600, color: '#0f172a', margin: 0 }
 const hr = { borderColor: '#e2e8f0', margin: '8px 0' }
 const footer = { fontSize: '12px', color: '#64748b', marginTop: '24px', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }
+const ctaWrap = { textAlign: 'center' as const, margin: '24px 0 8px' }
+const ctaButton = { backgroundColor: '#0f172a', color: '#ffffff', padding: '12px 24px', borderRadius: '6px', fontSize: '14px', fontWeight: 600, textDecoration: 'none', display: 'inline-block' }
+const ctaHint = { fontSize: '12px', color: '#64748b', marginTop: '10px', textAlign: 'center' as const }

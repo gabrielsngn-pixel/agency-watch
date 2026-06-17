@@ -1,6 +1,9 @@
 import React from 'react'
-import { Body, Container, Head, Heading, Hr, Html, Preview, Section, Text } from '@react-email/components'
+import { Body, Button, Container, Head, Heading, Hr, Html, Preview, Section, Text } from '@react-email/components'
 import type { TemplateEntry } from './registry'
+
+const FORM_URL =
+  'https://docs.google.com/forms/d/e/1FAIpQLScvK9KeJ_Ftv2fGiEa4lGBkVuuDqM-_xrqtt0SSG2X6fEw66w/viewform?usp=dialog'
 
 interface Props {
   agency_name?: string
@@ -10,6 +13,7 @@ interface Props {
   alert_type?: 'stage_idle' | 'no_interaction' | string
   days_idle?: number
   threshold_days?: number
+  form_url?: string
 }
 
 const labelByType: Record<string, string> = {
@@ -25,6 +29,7 @@ const KanbanSlaAlert = ({
   alert_type = 'stage_idle',
   days_idle = 0,
   threshold_days = 0,
+  form_url = FORM_URL,
 }: Props) => {
   const location = [agency_city, agency_state].filter(Boolean).join(' / ')
   const reason = labelByType[alert_type] ?? 'sem atualizações recentes'
@@ -52,6 +57,14 @@ const KanbanSlaAlert = ({
           <Text style={text}>
             Sugerimos revisar essa imobiliária e registrar uma nova interação ou movê-la para a próxima etapa.
           </Text>
+          <Section style={ctaWrap}>
+            <Button href={form_url} style={ctaButton}>
+              Atualizar status no formulário
+            </Button>
+            <Text style={ctaHint}>
+              Clique acima para registrar a nova interação e zerar o contador de SLA.
+            </Text>
+          </Section>
           <Text style={footer}>Agency Watch — alerta automático de SLA</Text>
         </Container>
       </Body>
@@ -85,3 +98,6 @@ const value = { fontSize: '15px', color: '#475569', margin: '0 0 12px' }
 const valueHighlight = { fontSize: '16px', fontWeight: 600, color: '#0f172a', margin: 0 }
 const hr = { borderColor: '#fde68a', margin: '8px 0' }
 const footer = { fontSize: '12px', color: '#64748b', marginTop: '24px', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }
+const ctaWrap = { textAlign: 'center' as const, margin: '24px 0 8px' }
+const ctaButton = { backgroundColor: '#b45309', color: '#ffffff', padding: '12px 24px', borderRadius: '6px', fontSize: '14px', fontWeight: 600, textDecoration: 'none', display: 'inline-block' }
+const ctaHint = { fontSize: '12px', color: '#64748b', marginTop: '10px', textAlign: 'center' as const }

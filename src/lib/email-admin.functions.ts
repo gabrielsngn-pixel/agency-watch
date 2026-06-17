@@ -1,5 +1,8 @@
+import * as React from 'react'
 import { createServerFn } from '@tanstack/react-start'
+import { render } from '@react-email/render'
 import { requireSupabaseAuth } from '@/integrations/supabase/auth-middleware'
+import { TEMPLATES } from '@/lib/email-templates/registry'
 
 async function getAdminClient(context: any) {
   const { data: isAdmin, error } = await context.supabase.rpc('has_role', {
@@ -103,4 +106,24 @@ export const updateEmailSendState = createServerFn({ method: 'POST' })
       .eq('id', 1)
     if (error) throw new Error(error.message)
     return { ok: true }
+  })
+
+export const previewEmailTemplate = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { templateName: string; data?: Record<string, any> }) => input)
+  .handler(async ({ data, context }) => {
+    // Verify admin
+    const { data: isAdmin } = await context.supabase.rpc('has_role', {
+      _user_id: context.userId,
+      _role: 'admin',
+    })
+    if (!isAdmin) throw new Error('Forbidden')
+
+    const entry = TEMPLATES[data.templateName]
+    if (!entry) throw new Error('Template não encontrado')
+    const props = { ...(entry.previewData ?? {}), ...(data.data ?? {}) }
+    const html = await render(React.createElement(entry.component, props))
+    const subject =
+      typeof entry.subject === 'function' ? entry.subject(props) : entry.subject
+    return { html, subject, displayName: entry.displayName ?? data.templateName }
   })
