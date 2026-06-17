@@ -103,13 +103,27 @@ function ImportClientsPage() {
   };
 
   const rebuildPreview = (p: ParsedTable, m: Record<string, ImportColumn | "">, tplKey: TemplateKey) => {
-    const next: PreviewRow[] = p.rows.map((raw, idx) => {
+    const next: PreviewRow[] = [];
+    p.rows.forEach((raw, idx) => {
+      // Limpeza: ignorar linhas em que TODAS as células estejam vazias/whitespace.
+      const hasAnyValue = Object.values(raw).some(
+        (v) => v !== null && v !== undefined && String(v).trim() !== "",
+      );
+      if (!hasAnyValue) return;
+
       const std: StandardRow = {};
       for (const [srcHeader, target] of Object.entries(m)) {
         if (!target) continue;
         std[target] = normalizeValue(target, raw[srcHeader]);
       }
-      return { ...std, _errors: computeErrors(std, tplKey), _idx: idx, _cepDerived: {} };
+
+      // Regra de negócio: imóvel comercial força subtipo "Casa".
+      const tipo = String(std.tipo_imovel ?? "").toLowerCase();
+      if (tipo.includes("comercial")) {
+        std.subtipo_imovel = "Casa";
+      }
+
+      next.push({ ...std, _errors: computeErrors(std, tplKey), _idx: idx, _cepDerived: {} });
     });
     setRows(next);
   };
@@ -136,6 +150,11 @@ function ImportClientsPage() {
           [col]: normalizeValue(col, value),
           _cepDerived: { ...r._cepDerived, [col]: false },
         };
+        // Imóvel comercial força subtipo "Casa".
+        const tipo = String(updated.tipo_imovel ?? "").toLowerCase();
+        if (tipo.includes("comercial")) {
+          updated.subtipo_imovel = "Casa";
+        }
         updated._errors = computeErrors(updated, templateKey);
         return updated;
       })
