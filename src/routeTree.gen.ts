@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as AuthenticatedPortfolioRouteImport } from './routes/_authenticated/portfolio'
 import { Route as AuthenticatedMovementRouteImport } from './routes/_authenticated/movement'
 import { Route as AuthenticatedImportClientsRouteImport } from './routes/_authenticated/import-clients'
@@ -21,11 +22,14 @@ import { Route as AuthenticatedConsultantsRouteImport } from './routes/_authenti
 import { Route as AuthenticatedBotRouteImport } from './routes/_authenticated/bot'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedPortfolioIndexRouteImport } from './routes/_authenticated/portfolio.index'
+import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as AuthenticatedSettingsUsersRouteImport } from './routes/_authenticated/settings.users'
 import { Route as AuthenticatedSettingsSlackRouteImport } from './routes/_authenticated/settings.slack'
 import { Route as AuthenticatedSettingsHubspotRouteImport } from './routes/_authenticated/settings.hubspot'
 import { Route as AuthenticatedPortfolioNewRouteImport } from './routes/_authenticated/portfolio.new'
 import { Route as AuthenticatedPortfolioAgencyIdRouteImport } from './routes/_authenticated/portfolio.$agencyId'
+import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
+import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp.webhook'
 import { Route as ApiPublicSlackInteractionsRouteImport } from './routes/api/public/slack.interactions'
@@ -49,6 +53,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
+  id: '/email/unsubscribe',
+  path: '/email/unsubscribe',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedPortfolioRoute = AuthenticatedPortfolioRouteImport.update({
@@ -99,6 +108,11 @@ const AuthenticatedPortfolioIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedPortfolioRoute,
   } as any)
+const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
+  id: '/lovable/email/suppression',
+  path: '/lovable/email/suppression',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedSettingsUsersRoute =
   AuthenticatedSettingsUsersRouteImport.update({
     id: '/settings/users',
@@ -128,6 +142,18 @@ const AuthenticatedPortfolioAgencyIdRoute =
     id: '/$agencyId',
     path: '/$agencyId',
     getParentRoute: () => AuthenticatedPortfolioRoute,
+  } as any)
+const LovableEmailTransactionalSendRoute =
+  LovableEmailTransactionalSendRouteImport.update({
+    id: '/lovable/email/transactional/send',
+    path: '/lovable/email/transactional/send',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const LovableEmailTransactionalPreviewRoute =
+  LovableEmailTransactionalPreviewRouteImport.update({
+    id: '/lovable/email/transactional/preview',
+    path: '/lovable/email/transactional/preview',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
@@ -197,11 +223,13 @@ export interface FileRoutesByFullPath {
   '/import-clients': typeof AuthenticatedImportClientsRoute
   '/movement': typeof AuthenticatedMovementRoute
   '/portfolio': typeof AuthenticatedPortfolioRouteWithChildren
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/portfolio/$agencyId': typeof AuthenticatedPortfolioAgencyIdRoute
   '/portfolio/new': typeof AuthenticatedPortfolioNewRoute
   '/settings/hubspot': typeof AuthenticatedSettingsHubspotRoute
   '/settings/slack': typeof AuthenticatedSettingsSlackRoute
   '/settings/users': typeof AuthenticatedSettingsUsersRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/portfolio/': typeof AuthenticatedPortfolioIndexRoute
   '/api/public/google-forms/activities': typeof ApiPublicGoogleFormsActivitiesRoute
   '/api/public/google-forms/agencies': typeof ApiPublicGoogleFormsAgenciesRoute
@@ -213,6 +241,8 @@ export interface FileRoutesByFullPath {
   '/api/public/slack/interactions': typeof ApiPublicSlackInteractionsRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -224,11 +254,13 @@ export interface FileRoutesByTo {
   '/import': typeof AuthenticatedImportRoute
   '/import-clients': typeof AuthenticatedImportClientsRoute
   '/movement': typeof AuthenticatedMovementRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/portfolio/$agencyId': typeof AuthenticatedPortfolioAgencyIdRoute
   '/portfolio/new': typeof AuthenticatedPortfolioNewRoute
   '/settings/hubspot': typeof AuthenticatedSettingsHubspotRoute
   '/settings/slack': typeof AuthenticatedSettingsSlackRoute
   '/settings/users': typeof AuthenticatedSettingsUsersRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/portfolio': typeof AuthenticatedPortfolioIndexRoute
   '/api/public/google-forms/activities': typeof ApiPublicGoogleFormsActivitiesRoute
   '/api/public/google-forms/agencies': typeof ApiPublicGoogleFormsAgenciesRoute
@@ -240,6 +272,8 @@ export interface FileRoutesByTo {
   '/api/public/slack/interactions': typeof ApiPublicSlackInteractionsRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -254,11 +288,13 @@ export interface FileRoutesById {
   '/_authenticated/import-clients': typeof AuthenticatedImportClientsRoute
   '/_authenticated/movement': typeof AuthenticatedMovementRoute
   '/_authenticated/portfolio': typeof AuthenticatedPortfolioRouteWithChildren
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/_authenticated/portfolio/$agencyId': typeof AuthenticatedPortfolioAgencyIdRoute
   '/_authenticated/portfolio/new': typeof AuthenticatedPortfolioNewRoute
   '/_authenticated/settings/hubspot': typeof AuthenticatedSettingsHubspotRoute
   '/_authenticated/settings/slack': typeof AuthenticatedSettingsSlackRoute
   '/_authenticated/settings/users': typeof AuthenticatedSettingsUsersRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/portfolio/': typeof AuthenticatedPortfolioIndexRoute
   '/api/public/google-forms/activities': typeof ApiPublicGoogleFormsActivitiesRoute
   '/api/public/google-forms/agencies': typeof ApiPublicGoogleFormsAgenciesRoute
@@ -270,6 +306,8 @@ export interface FileRoutesById {
   '/api/public/slack/interactions': typeof ApiPublicSlackInteractionsRoute
   '/api/public/whatsapp/webhook': typeof ApiPublicWhatsappWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -284,11 +322,13 @@ export interface FileRouteTypes {
     | '/import-clients'
     | '/movement'
     | '/portfolio'
+    | '/email/unsubscribe'
     | '/portfolio/$agencyId'
     | '/portfolio/new'
     | '/settings/hubspot'
     | '/settings/slack'
     | '/settings/users'
+    | '/lovable/email/suppression'
     | '/portfolio/'
     | '/api/public/google-forms/activities'
     | '/api/public/google-forms/agencies'
@@ -300,6 +340,8 @@ export interface FileRouteTypes {
     | '/api/public/slack/interactions'
     | '/api/public/whatsapp/webhook'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -311,11 +353,13 @@ export interface FileRouteTypes {
     | '/import'
     | '/import-clients'
     | '/movement'
+    | '/email/unsubscribe'
     | '/portfolio/$agencyId'
     | '/portfolio/new'
     | '/settings/hubspot'
     | '/settings/slack'
     | '/settings/users'
+    | '/lovable/email/suppression'
     | '/portfolio'
     | '/api/public/google-forms/activities'
     | '/api/public/google-forms/agencies'
@@ -327,6 +371,8 @@ export interface FileRouteTypes {
     | '/api/public/slack/interactions'
     | '/api/public/whatsapp/webhook'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
   id:
     | '__root__'
     | '/'
@@ -340,11 +386,13 @@ export interface FileRouteTypes {
     | '/_authenticated/import-clients'
     | '/_authenticated/movement'
     | '/_authenticated/portfolio'
+    | '/email/unsubscribe'
     | '/_authenticated/portfolio/$agencyId'
     | '/_authenticated/portfolio/new'
     | '/_authenticated/settings/hubspot'
     | '/_authenticated/settings/slack'
     | '/_authenticated/settings/users'
+    | '/lovable/email/suppression'
     | '/_authenticated/portfolio/'
     | '/api/public/google-forms/activities'
     | '/api/public/google-forms/agencies'
@@ -356,12 +404,16 @@ export interface FileRouteTypes {
     | '/api/public/slack/interactions'
     | '/api/public/whatsapp/webhook'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
+  EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
+  LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicGoogleFormsActivitiesRoute: typeof ApiPublicGoogleFormsActivitiesRoute
   ApiPublicGoogleFormsAgenciesRoute: typeof ApiPublicGoogleFormsAgenciesRoute
   ApiPublicGoogleFormsSyncRoute: typeof ApiPublicGoogleFormsSyncRoute
@@ -372,6 +424,8 @@ export interface RootRouteChildren {
   ApiPublicSlackInteractionsRoute: typeof ApiPublicSlackInteractionsRoute
   ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
+  LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
+  LovableEmailTransactionalSendRoute: typeof LovableEmailTransactionalSendRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -395,6 +449,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/email/unsubscribe': {
+      id: '/email/unsubscribe'
+      path: '/email/unsubscribe'
+      fullPath: '/email/unsubscribe'
+      preLoaderRoute: typeof EmailUnsubscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/portfolio': {
@@ -460,6 +521,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPortfolioIndexRouteImport
       parentRoute: typeof AuthenticatedPortfolioRoute
     }
+    '/lovable/email/suppression': {
+      id: '/lovable/email/suppression'
+      path: '/lovable/email/suppression'
+      fullPath: '/lovable/email/suppression'
+      preLoaderRoute: typeof LovableEmailSuppressionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/settings/users': {
       id: '/_authenticated/settings/users'
       path: '/settings/users'
@@ -494,6 +562,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/portfolio/$agencyId'
       preLoaderRoute: typeof AuthenticatedPortfolioAgencyIdRouteImport
       parentRoute: typeof AuthenticatedPortfolioRoute
+    }
+    '/lovable/email/transactional/send': {
+      id: '/lovable/email/transactional/send'
+      path: '/lovable/email/transactional/send'
+      fullPath: '/lovable/email/transactional/send'
+      preLoaderRoute: typeof LovableEmailTransactionalSendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/transactional/preview': {
+      id: '/lovable/email/transactional/preview'
+      path: '/lovable/email/transactional/preview'
+      fullPath: '/lovable/email/transactional/preview'
+      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/lovable/email/queue/process': {
       id: '/lovable/email/queue/process'
@@ -621,6 +703,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   LoginRoute: LoginRoute,
+  EmailUnsubscribeRoute: EmailUnsubscribeRoute,
+  LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicGoogleFormsActivitiesRoute: ApiPublicGoogleFormsActivitiesRoute,
   ApiPublicGoogleFormsAgenciesRoute: ApiPublicGoogleFormsAgenciesRoute,
   ApiPublicGoogleFormsSyncRoute: ApiPublicGoogleFormsSyncRoute,
@@ -631,6 +715,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicSlackInteractionsRoute: ApiPublicSlackInteractionsRoute,
   ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
+  LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
+  LovableEmailTransactionalSendRoute: LovableEmailTransactionalSendRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
