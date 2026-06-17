@@ -33,6 +33,9 @@ import { Badge } from "@/components/ui/badge";
 import { GripVertical, Plus, Save, Trash2, Loader2, Pencil, Copy, MessageSquare, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { useKanbanStages, type KanbanStage } from "@/hooks/use-kanban-stages";
+import { EmailMonitoring } from "@/components/admin/email-monitoring";
+import { EmailConfig } from "@/components/admin/email-config";
+import { KanbanNotifications } from "@/components/admin/kanban-notifications";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPanel,
