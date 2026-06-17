@@ -86,11 +86,12 @@ function KanbanStagesAdmin() {
       if (idx < 0 || swapIdx < 0 || swapIdx >= sorted.length) return;
       const a = sorted[idx];
       const b = sorted[swapIdx];
-      const { error } = await supabase.from("kanban_stages").upsert([
-        { id: a.id, position: b.position },
-        { id: b.id, position: a.position },
+      const [r1, r2] = await Promise.all([
+        supabase.from("kanban_stages").update({ position: b.position }).eq("id", a.id),
+        supabase.from("kanban_stages").update({ position: a.position }).eq("id", b.id),
       ]);
-      if (error) throw error;
+      if (r1.error) throw r1.error;
+      if (r2.error) throw r2.error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["kanban-stages"] }),
     onError: (e: any) => toast.error(e?.message ?? "Falha ao reordenar."),
