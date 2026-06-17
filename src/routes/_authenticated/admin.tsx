@@ -368,7 +368,8 @@ type MessageTemplate = {
 
 const TRIGGERS = [
   { value: "manual", label: "Envio manual" },
-  { value: "sla_breach", label: "SLA estourado (automático)" },
+  { value: "kanban_stage_change", label: "Mudança de etapa no Kanban (automático)" },
+  { value: "sla_breach", label: "SLA do Kanban estourado (automático, diário 10h)" },
   { value: "first_contact", label: "Primeiro contato" },
   { value: "follow_up", label: "Follow-up" },
   { value: "proposal_sent", label: "Proposta enviada" },
