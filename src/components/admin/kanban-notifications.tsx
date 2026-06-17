@@ -371,22 +371,33 @@ function StageItem({
           >
             <div className="space-y-1.5 max-w-md">
               <Label className="text-xs text-muted-foreground">Template</Label>
-              <Select
-                value={d.template_name}
-                onValueChange={(v) => onChange({ template_name: v })}
-              >
-                <SelectTrigger>
-                  <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(TEMPLATES).map(([name, tpl]) => (
-                    <SelectItem key={name} value={name}>
-                      {tpl.displayName ?? name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select
+                  value={d.template_name}
+                  onValueChange={(v) => onChange({ template_name: v })}
+                >
+                  <SelectTrigger>
+                    <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(TEMPLATES).map(([name, tpl]) => (
+                      <SelectItem key={name} value={name}>
+                        {tpl.displayName ?? name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onPreview(d.template_name)}
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  Visualizar
+                </Button>
+              </div>
             </div>
           </Section>
 
