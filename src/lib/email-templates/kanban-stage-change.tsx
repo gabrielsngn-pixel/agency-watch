@@ -83,3 +83,6 @@ const value = { fontSize: '15px', color: '#475569', margin: '0 0 12px' }
 const valueHighlight = { fontSize: '16px', fontWeight: 600, color: '#0f172a', margin: 0 }
 const hr = { borderColor: '#e2e8f0', margin: '8px 0' }
 const footer = { fontSize: '12px', color: '#64748b', marginTop: '24px', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }
+const ctaWrap = { textAlign: 'center' as const, margin: '24px 0 8px' }
+const ctaButton = { backgroundColor: '#0f172a', color: '#ffffff', padding: '12px 24px', borderRadius: '6px', fontSize: '14px', fontWeight: 600, textDecoration: 'none', display: 'inline-block' }
+const ctaHint = { fontSize: '12px', color: '#64748b', marginTop: '10px', textAlign: 'center' as const }
