@@ -654,6 +654,24 @@ export type Database = {
         }
         Relationships: []
       }
+      email_template_settings: {
+        Row: {
+          enabled: boolean
+          template_name: string
+          updated_at: string
+        }
+        Insert: {
+          enabled?: boolean
+          template_name: string
+          updated_at?: string
+        }
+        Update: {
+          enabled?: boolean
+          template_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_unsubscribe_tokens: {
         Row: {
           created_at: string
@@ -857,6 +875,42 @@ export type Database = {
           },
         ]
       }
+      kanban_stage_notifications: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          extra_emails: string[]
+          notify_admins: boolean
+          notify_consultant: boolean
+          notify_regional_director: boolean
+          stage_key: string
+          template_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          extra_emails?: string[]
+          notify_admins?: boolean
+          notify_consultant?: boolean
+          notify_regional_director?: boolean
+          stage_key: string
+          template_name?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          extra_emails?: string[]
+          notify_admins?: boolean
+          notify_consultant?: boolean
+          notify_regional_director?: boolean
+          stage_key?: string
+          template_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       kanban_stage_snapshots: {
         Row: {
           agency_id: string
@@ -1048,6 +1102,7 @@ export type Database = {
           negotiation_status: Database["public"]["Enums"]["negotiation_status"]
           next_step_date: string | null
           next_steps: string | null
+          notify_consultant_on_change: boolean
           perceived_potential: string | null
           regional_director: string | null
           registration_incomplete: boolean
@@ -1078,6 +1133,7 @@ export type Database = {
           negotiation_status?: Database["public"]["Enums"]["negotiation_status"]
           next_step_date?: string | null
           next_steps?: string | null
+          notify_consultant_on_change?: boolean
           perceived_potential?: string | null
           regional_director?: string | null
           registration_incomplete?: boolean
@@ -1108,6 +1164,7 @@ export type Database = {
           negotiation_status?: Database["public"]["Enums"]["negotiation_status"]
           next_step_date?: string | null
           next_steps?: string | null
+          notify_consultant_on_change?: boolean
           perceived_potential?: string | null
           regional_director?: string | null
           registration_incomplete?: boolean
