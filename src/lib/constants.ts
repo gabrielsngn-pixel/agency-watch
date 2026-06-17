@@ -3,6 +3,7 @@ export const NEGOTIATION_STATUSES = [
   "Conversas iniciadas",
   "Reunião agendada",
   "Aguardando base",
+  "Em precificação",
   "Stand by",
   "Sem interesse",
   "Proposta enviada",
