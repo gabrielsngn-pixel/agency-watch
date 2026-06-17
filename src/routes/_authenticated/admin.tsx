@@ -645,3 +645,123 @@ function TemplateDialog({
     </Dialog>
   );
 }
+
+// ---------- Email Test Admin ----------
+
+function EmailTestAdmin() {
+  const [recipientEmail, setRecipientEmail] = useState("");
+  const [testName, setTestName] = useState("");
+  const [testMessage, setTestMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState<{ success?: boolean; message?: string } | null>(null);
+
+  const handleSendTest = async () => {
+    if (!recipientEmail.trim() || !recipientEmail.includes("@")) {
+      toast.error("Informe um e-mail válido.");
+      return;
+    }
+    setSending(true);
+    setResult(null);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) {
+        toast.error("Sessão expirada. Faça login novamente.");
+        setSending(false);
+        return;
+      }
+
+      const res = await fetch("/lovable/email/transactional/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          templateName: "test-email",
+          recipientEmail: recipientEmail.trim(),
+          idempotencyKey: `test-${Date.now()}`,
+          templateData: {
+            name: testName.trim() || undefined,
+            message: testMessage.trim() || undefined,
+          },
+        }),
+      });
+
+      const data = await res.json().catch(() => ({ error: "Resposta inválida" }));
+      if (res.ok && data.success) {
+        setResult({ success: true, message: "E-mail enfileirado com sucesso! Verifique a caixa de entrada em alguns minutos." });
+        toast.success("E-mail de teste enviado!");
+      } else {
+        setResult({ success: false, message: data.error || "Falha ao enviar e-mail." });
+        toast.error(data.error || "Falha ao enviar e-mail.");
+      }
+    } catch (e: any) {
+      setResult({ success: false, message: e?.message || "Erro inesperado." });
+      toast.error(e?.message || "Erro inesperado.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardContent className="p-6 space-y-5">
+        <div>
+          <h3 className="font-display font-semibold text-base">Teste de E-mail</h3>
+          <p className="text-xs text-muted-foreground">
+            Envie um e-mail de teste para verificar se a infraestrutura está funcionando.
+            O domínio ainda está em verificação DNS — e-mails só serão entregues após a verificação completa.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="md:col-span-2">
+            <Label className="text-xs">E-mail do destinatário</Label>
+            <Input
+              type="email"
+              value={recipientEmail}
+              onChange={(e) => setRecipientEmail(e.target.value)}
+              placeholder="seu@email.com"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Nome (opcional)</Label>
+            <Input
+              value={testName}
+              onChange={(e) => setTestName(e.target.value)}
+              placeholder="João Silva"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Mensagem personalizada (opcional)</Label>
+            <Input
+              value={testMessage}
+              onChange={(e) => setTestMessage(e.target.value)}
+              placeholder="Sua mensagem aqui..."
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Button onClick={handleSendTest} disabled={sending}>
+            {sending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Mail className="h-3.5 w-3.5 mr-1" />}
+            Enviar teste
+          </Button>
+        </div>
+
+        {result && (
+          <div className={`p-3 rounded-md text-sm ${result.success ? "bg-success/10 text-success border border-success/30" : "bg-destructive/10 text-destructive border border-destructive/30"}`}>
+            {result.message}
+          </div>
+        )}
+
+        <div className="text-xs text-muted-foreground border-t pt-4 mt-2">
+          <p><strong>Status do domínio:</strong> Verificando DNS (notify.outreach.loftinsights.com.br)</p>
+          <p className="mt-1">O envio funciona mesmo antes da verificação, mas a entrega só ocorre após o DNS ser confirmado.</p>
+          <p className="mt-1">Monitoramento em: <strong>Cloud → Emails</strong></p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
