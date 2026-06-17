@@ -33,6 +33,9 @@ import { Badge } from "@/components/ui/badge";
 import { GripVertical, Plus, Save, Trash2, Loader2, Pencil, Copy, MessageSquare, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { useKanbanStages, type KanbanStage } from "@/hooks/use-kanban-stages";
+import { EmailMonitoring } from "@/components/admin/email-monitoring";
+import { EmailConfig } from "@/components/admin/email-config";
+import { KanbanNotifications } from "@/components/admin/kanban-notifications";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPanel,
@@ -57,10 +60,13 @@ function AdminPanel() {
       />
       <div className="p-6 lg:p-10">
         <Tabs defaultValue="kanban" className="space-y-6">
-          <TabsList>
+          <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="kanban">Status do Kanban</TabsTrigger>
             <TabsTrigger value="templates">Templates de comunicação</TabsTrigger>
             <TabsTrigger value="email-test">Teste de E-mail</TabsTrigger>
+            <TabsTrigger value="email-monitoring">E-mails · Monitoramento</TabsTrigger>
+            <TabsTrigger value="email-config">E-mails · Configuração</TabsTrigger>
+            <TabsTrigger value="email-kanban">E-mails · Kanban</TabsTrigger>
           </TabsList>
           <TabsContent value="kanban" className="space-y-6">
             <KanbanStagesAdmin />
@@ -70,6 +76,15 @@ function AdminPanel() {
           </TabsContent>
           <TabsContent value="email-test" className="space-y-6">
             <EmailTestAdmin />
+          </TabsContent>
+          <TabsContent value="email-monitoring" className="space-y-6">
+            <EmailMonitoring />
+          </TabsContent>
+          <TabsContent value="email-config" className="space-y-6">
+            <EmailConfig />
+          </TabsContent>
+          <TabsContent value="email-kanban" className="space-y-6">
+            <KanbanNotifications />
           </TabsContent>
         </Tabs>
       </div>
