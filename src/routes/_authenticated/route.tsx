@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { LayoutDashboard, Briefcase, Upload, Settings, LogOut, Users, MessageSquare, Activity, FileInput } from "lucide-react";
+import { LayoutDashboard, Briefcase, Upload, Settings, LogOut, Users, MessageSquare, Activity, FileInput, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
@@ -27,6 +27,7 @@ const NAV = [
   { to: "/consultants", label: "Consultores", icon: Users, managerOnly: true },
   { to: "/settings/hubspot", label: "HubSpot", icon: Settings, managerOnly: true },
   { to: "/settings/users", label: "Usuários", icon: Users, adminOnly: true },
+  { to: "/admin", label: "Painel Administrativo", icon: ShieldCheck, adminOnly: true },
 ];
 
 function AuthedLayout() {

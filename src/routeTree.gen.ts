@@ -19,6 +19,7 @@ import { Route as AuthenticatedImportRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedConsultantsRouteImport } from './routes/_authenticated/consultants'
 import { Route as AuthenticatedBotRouteImport } from './routes/_authenticated/bot'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedPortfolioIndexRouteImport } from './routes/_authenticated/portfolio.index'
 import { Route as AuthenticatedSettingsUsersRouteImport } from './routes/_authenticated/settings.users'
 import { Route as AuthenticatedSettingsSlackRouteImport } from './routes/_authenticated/settings.slack'
@@ -84,6 +85,11 @@ const AuthenticatedConsultantsRoute =
 const AuthenticatedBotRoute = AuthenticatedBotRouteImport.update({
   id: '/bot',
   path: '/bot',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedPortfolioIndexRoute =
@@ -176,6 +182,7 @@ const ApiPublicGoogleFormsActivitiesRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/admin': typeof AuthenticatedAdminRoute
   '/bot': typeof AuthenticatedBotRoute
   '/consultants': typeof AuthenticatedConsultantsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -202,6 +209,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/admin': typeof AuthenticatedAdminRoute
   '/bot': typeof AuthenticatedBotRoute
   '/consultants': typeof AuthenticatedConsultantsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -229,6 +237,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/login': typeof LoginRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/bot': typeof AuthenticatedBotRoute
   '/_authenticated/consultants': typeof AuthenticatedConsultantsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
@@ -257,6 +266,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/admin'
     | '/bot'
     | '/consultants'
     | '/dashboard'
@@ -283,6 +293,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/admin'
     | '/bot'
     | '/consultants'
     | '/dashboard'
@@ -309,6 +320,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/login'
+    | '/_authenticated/admin'
     | '/_authenticated/bot'
     | '/_authenticated/consultants'
     | '/_authenticated/dashboard'
@@ -418,6 +430,13 @@ declare module '@tanstack/react-router' {
       path: '/bot'
       fullPath: '/bot'
       preLoaderRoute: typeof AuthenticatedBotRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/portfolio/': {
@@ -547,6 +566,7 @@ const AuthenticatedPortfolioRouteWithChildren =
   )
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedBotRoute: typeof AuthenticatedBotRoute
   AuthenticatedConsultantsRoute: typeof AuthenticatedConsultantsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
@@ -560,6 +580,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedBotRoute: AuthenticatedBotRoute,
   AuthenticatedConsultantsRoute: AuthenticatedConsultantsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,

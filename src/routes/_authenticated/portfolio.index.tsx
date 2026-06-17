@@ -21,8 +21,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, AlertTriangle, LayoutGrid, List, GripVertical } from "lucide-react";
+import { Plus, Search, AlertTriangle, LayoutGrid, List, Clock } from "lucide-react";
 import { NEGOTIATION_STATUSES, BR_STATES, STATUS_TONE, daysSince, type NegotiationStatus } from "@/lib/constants";
+import { useKanbanStages, evaluateSla, type KanbanStage } from "@/hooks/use-kanban-stages";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -169,21 +170,41 @@ const TONE_BORDER: Record<string, string> = {
 function KanbanBoard({ agencies, isLoading }: { agencies: any[]; isLoading: boolean }) {
   const qc = useQueryClient();
   const [activeId, setActiveId] = useState<string | null>(null);
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  const { data: stages = [] } = useKanbanStages();
+
+  const visibleStages = useMemo(
+    () => stages.filter((s) => s.is_visible).sort((a, b) => a.position - b.position),
+    [stages],
+  );
+
+  // Fallback caso a tabela ainda esteja vazia (primeiro load): usa enum.
+  const columns: { key: string; label: string; color: string; sla_days: number }[] = useMemo(() => {
+    if (visibleStages.length) {
+      return visibleStages.map((s) => ({ key: s.stage_key, label: s.label, color: s.color, sla_days: s.sla_days }));
+    }
+    return NEGOTIATION_STATUSES.map((s) => ({ key: s, label: s, color: STATUS_TONE[s], sla_days: 7 }));
+  }, [visibleStages]);
+
+  const slaByKey = useMemo(() => {
+    const m: Record<string, number> = {};
+    columns.forEach((c) => (m[c.key] = c.sla_days));
+    return m;
+  }, [columns]);
 
   const grouped = useMemo(() => {
     const map: Record<string, any[]> = {};
-    NEGOTIATION_STATUSES.forEach((s) => (map[s] = []));
+    columns.forEach((c) => (map[c.key] = []));
     agencies.forEach((a) => {
       const key = a.negotiation_status as string;
       if (!map[key]) map[key] = [];
       map[key].push(a);
     });
     return map;
-  }, [agencies]);
+  }, [agencies, columns]);
 
   const moveMutation = useMutation({
-    mutationFn: async ({ agency, toStatus }: { agency: any; toStatus: NegotiationStatus }) => {
+    mutationFn: async ({ agency, toStatus }: { agency: any; toStatus: string }) => {
       const fromStatus = agency.negotiation_status;
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
@@ -195,7 +216,7 @@ function KanbanBoard({ agencies, isLoading }: { agencies: any[]; isLoading: bool
         activity_type: "cadastro_update",
         summary: `Etapa alterada de "${fromStatus}" para "${toStatus}" pelo Kanban.`,
         status_changed: true,
-        new_status: toStatus,
+        new_status: toStatus as NegotiationStatus,
         source: "web",
         registered_by_user_id: userId,
         registered_by_name: userName,
@@ -207,7 +228,9 @@ function KanbanBoard({ agencies, isLoading }: { agencies: any[]; isLoading: bool
       await qc.cancelQueries({ queryKey: ["agencies-list"] });
       const prev = qc.getQueryData<any[]>(["agencies-list"]);
       qc.setQueryData<any[]>(["agencies-list"], (old) =>
-        (old ?? []).map((a) => (a.id === agency.id ? { ...a, negotiation_status: toStatus } : a))
+        (old ?? []).map((a) =>
+          a.id === agency.id ? { ...a, negotiation_status: toStatus, last_stage_change_at: new Date().toISOString() } : a,
+        ),
       );
       return { prev };
     },
@@ -228,9 +251,9 @@ function KanbanBoard({ agencies, isLoading }: { agencies: any[]; isLoading: bool
     setActiveId(null);
     if (!e.over) return;
     const agency = agencies.find((a) => a.id === e.active.id);
-    const toStatus = String(e.over.id) as NegotiationStatus;
+    const toStatus = String(e.over.id);
     if (!agency || agency.negotiation_status === toStatus) return;
-    if (!NEGOTIATION_STATUSES.includes(toStatus)) return;
+    if (!columns.some((c) => c.key === toStatus)) return;
     moveMutation.mutate({ agency, toStatus });
   };
 
@@ -241,26 +264,33 @@ function KanbanBoard({ agencies, isLoading }: { agencies: any[]; isLoading: bool
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
       <div className="flex gap-3 overflow-x-auto pb-3 -mx-1 px-1">
-        {NEGOTIATION_STATUSES.map((s) => (
-          <KanbanColumn key={s} status={s} items={grouped[s] ?? []} />
+        {columns.map((c) => (
+          <KanbanColumn key={c.key} column={c} items={grouped[c.key] ?? []} slaDays={slaByKey[c.key] ?? 7} />
         ))}
       </div>
       <DragOverlay>
-        {activeAgency ? <AgencyCard agency={activeAgency} dragging /> : null}
+        {activeAgency ? <AgencyCard agency={activeAgency} slaDays={slaByKey[activeAgency.negotiation_status] ?? 7} dragging /> : null}
       </DragOverlay>
     </DndContext>
   );
 }
 
-function KanbanColumn({ status, items }: { status: NegotiationStatus; items: any[] }) {
-  const { setNodeRef, isOver } = useDroppable({ id: status });
-  const tone = STATUS_TONE[status];
+function KanbanColumn({
+  column,
+  items,
+  slaDays,
+}: {
+  column: { key: string; label: string; color: string };
+  items: any[];
+  slaDays: number;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: column.key });
   const total = items.reduce((acc, a) => acc + (a.contract_stock ?? 0), 0);
   return (
     <div className="w-[280px] shrink-0 flex flex-col">
       <div className="flex items-center justify-between px-2 mb-2">
         <div className="flex items-center gap-2 min-w-0">
-          <StatusBadge status={status} />
+          <StatusBadge status={column.key as NegotiationStatus} label={column.label} tone={column.color as any} />
           <span className="text-xs text-muted-foreground tabular-nums">{items.length}</span>
         </div>
         {total > 0 && (
@@ -271,28 +301,32 @@ function KanbanColumn({ status, items }: { status: NegotiationStatus; items: any
         ref={setNodeRef}
         className={cn(
           "flex-1 min-h-[400px] rounded-lg border border-dashed p-2 space-y-2 transition-colors bg-muted/30",
-          isOver && "bg-accent/40 border-accent-foreground/30"
+          isOver && "bg-accent/40 border-accent-foreground/30",
         )}
       >
         {items.length === 0 ? (
           <div className="text-xs text-muted-foreground text-center py-6">Solte aqui</div>
         ) : (
-          items.map((a) => <DraggableAgencyCard key={a.id} agency={a} tone={tone} />)
+          items.map((a) => (
+            <DraggableAgencyCard key={a.id} agency={a} tone={column.color} slaDays={slaDays} />
+          ))
         )}
       </div>
     </div>
   );
 }
 
-function DraggableAgencyCard({ agency, tone }: { agency: any; tone: string }) {
+function DraggableAgencyCard({ agency, tone, slaDays }: { agency: any; tone: string; slaDays: number }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: agency.id });
   return (
     <div
       ref={setNodeRef}
       {...attributes}
+      {...listeners}
       style={{ opacity: isDragging ? 0.3 : 1 }}
+      className="cursor-grab active:cursor-grabbing touch-none"
     >
-      <AgencyCard agency={agency} tone={tone} dragHandle={listeners} />
+      <AgencyCard agency={agency} tone={tone} slaDays={slaDays} />
     </div>
   );
 }
@@ -301,64 +335,68 @@ function AgencyCard({
   agency,
   tone = "neutral",
   dragging,
-  dragHandle,
+  slaDays,
 }: {
   agency: any;
   tone?: string;
   dragging?: boolean;
-  dragHandle?: any;
+  slaDays: number;
 }) {
   const d = daysSince(agency.last_interaction_date);
   const stale = d !== null && d > 14;
+  const sla = evaluateSla(agency.last_stage_change_at ?? agency.updated_at, slaDays);
   return (
     <Card
       className={cn(
         "p-3 border-l-4 bg-card transition-shadow",
         TONE_BORDER[tone] ?? TONE_BORDER.neutral,
-        dragging ? "shadow-lg rotate-1" : "hover:shadow-sm"
+        dragging ? "shadow-lg rotate-1" : "hover:shadow-sm",
       )}
     >
-      <div className="flex items-start gap-2">
-        <button
-          {...(dragHandle ?? {})}
-          className="mt-0.5 text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing touch-none"
-          aria-label="Arrastar"
-          onClick={(e) => e.preventDefault()}
-        >
-          <GripVertical className="h-4 w-4" />
-        </button>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <Link
-              to="/portfolio/$agencyId"
-              params={{ agencyId: agency.id }}
-              className="font-medium text-sm leading-tight hover:underline truncate"
-              onClick={(e) => dragging && e.preventDefault()}
-            >
-              {agency.name}
-            </Link>
-            {agency.c_level_support_needed && (
-              <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />
-            )}
-          </div>
-          <div className="text-xs text-muted-foreground mt-1">
-            {agency.city} · {agency.state}
-          </div>
-          {agency.main_contact && (
-            <div className="text-xs text-muted-foreground truncate mt-0.5">{agency.main_contact}</div>
+      <div className="min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <Link
+            to="/portfolio/$agencyId"
+            params={{ agencyId: agency.id }}
+            className="font-medium text-sm leading-tight hover:underline truncate"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              if (dragging) e.preventDefault();
+            }}
+          >
+            {agency.name}
+          </Link>
+          {agency.c_level_support_needed && (
+            <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />
           )}
-          <div className="flex items-center justify-between mt-2 text-[11px]">
-            <span className="text-muted-foreground truncate">
-              {agency.consultants?.name ?? "Sem consultor"}
-            </span>
-            <div className="flex items-center gap-2 shrink-0">
-              {agency.contract_stock > 0 && (
-                <span className="tabular-nums font-medium">{agency.contract_stock}</span>
+        </div>
+        <div className="text-xs text-muted-foreground mt-1">
+          {agency.city} · {agency.state}
+        </div>
+        {agency.main_contact && (
+          <div className="text-xs text-muted-foreground truncate mt-0.5">{agency.main_contact}</div>
+        )}
+        <div className="flex items-center justify-between mt-2 text-[11px]">
+          <span className="text-muted-foreground truncate">
+            {agency.consultants?.name ?? "Sem consultor"}
+          </span>
+          <div className="flex items-center gap-2 shrink-0">
+            <span
+              className={cn(
+                "inline-flex items-center gap-0.5 tabular-nums",
+                sla.breached ? "text-destructive font-medium" : sla.remaining <= 2 ? "text-warning" : "text-muted-foreground",
               )}
-              <span className={cn("tabular-nums", stale ? "text-destructive" : "text-muted-foreground")}>
-                {d === null ? "—" : `${d}d`}
-              </span>
-            </div>
+              title={`SLA da etapa: ${slaDays}d (${sla.used}d na etapa)`}
+            >
+              <Clock className="h-3 w-3" />
+              {sla.breached ? `+${Math.abs(sla.remaining)}d` : `${sla.remaining}d`}
+            </span>
+            {agency.contract_stock > 0 && (
+              <span className="tabular-nums font-medium">{agency.contract_stock}</span>
+            )}
+            <span className={cn("tabular-nums", stale ? "text-destructive" : "text-muted-foreground")}>
+              {d === null ? "—" : `${d}d`}
+            </span>
           </div>
         </div>
       </div>
