@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Building2, Briefcase, Target, AlertTriangle, ArrowRight, CalendarClock,
-  Activity, Zap, TrendingUp, CalendarCheck, RefreshCw, FileUp, ClipboardList,
+  Activity, Zap, TrendingUp, CalendarCheck, RefreshCw, FileUp,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
@@ -34,6 +34,7 @@ const TONE_COLOR: Record<string, string> = {
 };
 
 function DashboardPage() {
+  const queryClient = useQueryClient();
   const [agencyFilter, setAgencyFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -64,18 +65,16 @@ function DashboardPage() {
     },
   });
 
-  const { data: formSubmissions = [] } = useQuery({
-    queryKey: ["form-submissions-recent"],
+  const { data: missionAlerts = [] } = useQuery({
+    queryKey: ["mission-control-alerts"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("google_form_submissions")
-        .select("id, agency_id, processing_status, error_code, response_timestamp, created_at, payload, sheet_name")
-        .order("response_timestamp", { ascending: false, nullsFirst: false })
-        .limit(50);
-      if (error) {
-        // Non-admin users may not have access; degrade gracefully
-        return [];
-      }
+        .from("mission_control_alerts")
+        .select("id, alert_type, title, description, severity, metadata, created_at, resolved_at")
+        .is("resolved_at", null)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (error) return [];
       return data ?? [];
     },
   });
@@ -112,12 +111,6 @@ function DashboardPage() {
   const weekEndKey = endWeek.toISOString().slice(0, 10);
   const nextThisWeek = agencies.filter((agency: any) => agency.next_step_date && agency.next_step_date >= todayKey && agency.next_step_date < weekEndKey).length;
   const clientBases = activities.filter((item: any) => item.activity_type === "client_base_received").length;
-  const formsTotal = formSubmissions.length;
-  const formsWeek = formSubmissions.filter((s: any) => {
-    const d = s.response_timestamp ? new Date(s.response_timestamp) : null;
-    return d && d >= startWeek;
-  }).length;
-  const formsPending = formSubmissions.filter((s: any) => s.processing_status !== "processed").length;
   const directors = [...new Set(agencies.map((agency: any) => agency.regional_director).filter(Boolean))].sort();
   const filteredActivities = useMemo(() => activities.filter((item: any) => {
     const agency: any = agencyById.get(item.agency_id);
@@ -200,62 +193,58 @@ function DashboardPage() {
           <StatCard label="Próximos passos vencidos" value={overdue} icon={<AlertTriangle className="h-4 w-4" />} tone="destructive" hint="ação imediata" />
           <StatCard label="Próximos passos da semana" value={nextThisWeek} icon={<CalendarClock className="h-4 w-4" />} tone="info" hint="agenda da carteira" />
           <StatCard label="Bases recebidas" value={clientBases} icon={<FileUp className="h-4 w-4" />} hint="atividades com base" />
-          <StatCard
-            label="Formulários (semana)"
-            value={formsWeek}
-            icon={<ClipboardList className="h-4 w-4" />}
-            tone={formsPending > 0 ? "warning" : "info"}
-            hint={formsPending > 0 ? `${formsPending} pendente${formsPending > 1 ? "s" : ""} · ${formsTotal} no total` : `${formsTotal} no total`}
-          />
         </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-3">
-            <div>
-              <CardTitle className="flex items-center gap-2 font-display">
-                <ClipboardList className="h-4 w-4 text-primary" /> Submissões de Google Forms
-              </CardTitle>
-              <p className="text-xs text-muted-foreground mt-1">Últimos envios recebidos via prospecção</p>
-            </div>
-            <Badge variant="outline" className="tabular-nums">{formsTotal}</Badge>
-          </CardHeader>
-          <CardContent>
-            {formSubmissions.length === 0 ? (
-              <div className="py-8 text-center text-sm text-muted-foreground">Nenhuma submissão registrada ainda.</div>
-            ) : (
+        {missionAlerts.length > 0 && (
+          <Card className="border-warning/40">
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <div>
+                <CardTitle className="flex items-center gap-2 font-display">
+                  <AlertTriangle className="h-4 w-4 text-warning" /> Alertas de configuração
+                </CardTitle>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Mudanças no Kanban que exigem ajuste no Google Forms
+                </p>
+              </div>
+              <Badge variant="outline" className="tabular-nums">{missionAlerts.length}</Badge>
+            </CardHeader>
+            <CardContent>
               <div className="divide-y divide-border/50">
-                {formSubmissions.slice(0, 8).map((sub: any) => {
-                  const payload = sub.payload ?? {};
-                  const agencyName = payload.agency_name ?? payload.nome ?? payload.razao_social ?? payload["Nome da Imobiliária"] ?? sub.sheet_name ?? "Submissão sem nome";
-                  const author = payload.consultant_name ?? payload.consultor ?? payload["Consultor"] ?? payload.email ?? "—";
-                  const when = sub.response_timestamp ?? sub.created_at;
-                  const isProcessed = sub.processing_status === "processed";
-                  const isFailed = sub.processing_status === "failed";
-                  const tone = isProcessed ? "success" : isFailed ? "destructive" : "warning";
-                  const toneClass = tone === "success" ? "text-success border-success/40" : tone === "destructive" ? "text-destructive border-destructive/40" : "text-warning border-warning/40";
-                  const statusLabel = isProcessed ? "Processado" : isFailed ? `Falhou${sub.error_code ? ` · ${sub.error_code}` : ""}` : "Pendente";
-                  const content = (
-                    <div className="flex flex-wrap items-center justify-between gap-3 py-3 px-2 -mx-2 rounded-lg hover:bg-accent/20 transition-colors">
-                      <div className="min-w-0">
-                        <div className="font-medium truncate">{agencyName}</div>
-                        <div className="text-xs text-muted-foreground mt-1 truncate">{author}</div>
+                {missionAlerts.map((alert: any) => {
+                  const tone = alert.severity === "critical" ? "destructive" : alert.severity === "warning" ? "warning" : "info";
+                  const toneClass = tone === "destructive" ? "text-destructive border-destructive/40" : tone === "warning" ? "text-warning border-warning/40" : "text-info border-info/40";
+                  return (
+                    <div key={alert.id} className="flex flex-wrap items-start justify-between gap-3 py-3 px-2 -mx-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className={toneClass}>{alert.severity}</Badge>
+                          <div className="font-medium">{alert.title}</div>
+                        </div>
+                        {alert.description && (
+                          <div className="text-xs text-muted-foreground mt-1">{alert.description}</div>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        <Badge variant="outline" className={toneClass}>{statusLabel}</Badge>
-                        <span className="text-xs text-muted-foreground tabular-nums">{when ? new Date(when).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "—"}</span>
+                        <span className="text-xs text-muted-foreground tabular-nums">{new Date(alert.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={async () => {
+                            await supabase.from("mission_control_alerts").update({ resolved_at: new Date().toISOString() }).eq("id", alert.id);
+                            queryClient.invalidateQueries({ queryKey: ["mission-control-alerts"] });
+                          }}
+                        >
+                          Resolver
+                        </Button>
                       </div>
                     </div>
                   );
-                  return sub.agency_id ? (
-                    <Link key={sub.id} to="/portfolio/$agencyId" params={{ agencyId: sub.agency_id }}>{content}</Link>
-                  ) : (
-                    <div key={sub.id}>{content}</div>
-                  );
                 })}
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
+
 
         <Card>
           <CardHeader><CardTitle className="font-display">Atividades da carteira</CardTitle></CardHeader>
