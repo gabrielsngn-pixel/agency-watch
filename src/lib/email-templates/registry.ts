@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react'
 import { template as testEmailTemplate } from './test-email'
 import { template as kanbanStageChangeTemplate } from './kanban-stage-change'
+import { template as kanbanSlaAlertTemplate } from './kanban-sla-alert'
 
 export interface TemplateEntry {
   component: ComponentType<any>
@@ -14,4 +15,5 @@ export interface TemplateEntry {
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'test-email': testEmailTemplate,
   'kanban-stage-change': kanbanStageChangeTemplate,
+  'kanban-sla-alert': kanbanSlaAlertTemplate,
 }
