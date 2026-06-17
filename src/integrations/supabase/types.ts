@@ -1238,6 +1238,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_kanban_stage: {
+        Args: { p_color?: string; p_label: string; p_sla_days?: number }
+        Returns: string
+      }
+      delete_kanban_stage: { Args: { p_id: string }; Returns: boolean }
       expire_stale_bot_sessions: { Args: never; Returns: number }
       generate_kanban_snapshot: { Args: never; Returns: number }
       has_role: {
