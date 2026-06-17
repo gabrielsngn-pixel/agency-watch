@@ -53,6 +53,7 @@ export const STATUS_TONE: Record<NegotiationStatus, "neutral" | "info" | "warnin
   "Conversas iniciadas": "info",
   "Reunião agendada": "info",
   "Aguardando base": "warning",
+  "Em precificação": "info",
   "Stand by": "warning",
   "Sem interesse": "destructive",
   "Proposta enviada": "info",
