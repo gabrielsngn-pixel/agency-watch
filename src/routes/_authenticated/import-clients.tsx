@@ -31,7 +31,7 @@ import {
   type ImportColumn,
   type TemplateKey,
 } from "@/lib/client-import/template";
-import { buildImportXlsx, type StandardRow } from "@/lib/client-import/exporter";
+import { buildImportCsv, type StandardRow } from "@/lib/client-import/exporter";
 
 export const Route = createFileRoute("/_authenticated/import-clients")({
   component: ImportClientsPage,
