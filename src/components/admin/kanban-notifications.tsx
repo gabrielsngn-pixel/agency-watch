@@ -255,12 +255,14 @@ function StageItem({
   onChange,
   onSave,
   saving,
+  onPreview,
 }: {
   stage: any;
   draft: Settings;
   onChange: (patch: Partial<Settings>) => void;
   onSave: () => void;
   saving: boolean;
+  onPreview: (templateName: string) => void;
 }) {
   const d = draft;
   const recipientCount = useMemo(() => {
