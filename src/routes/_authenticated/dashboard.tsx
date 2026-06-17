@@ -64,6 +64,22 @@ function DashboardPage() {
     },
   });
 
+  const { data: formSubmissions = [] } = useQuery({
+    queryKey: ["form-submissions-recent"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("google_form_submissions")
+        .select("id, agency_id, processing_status, error_code, response_timestamp, created_at, payload, sheet_name")
+        .order("response_timestamp", { ascending: false, nullsFirst: false })
+        .limit(50);
+      if (error) {
+        // Non-admin users may not have access; degrade gracefully
+        return [];
+      }
+      return data ?? [];
+    },
+  });
+
   const total = agencies.length;
   const converted = agencies.filter((a) => a.negotiation_status === "Convertida").length;
   const inNegotiation = agencies.filter((a) =>
