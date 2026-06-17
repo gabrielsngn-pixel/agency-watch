@@ -192,62 +192,58 @@ function DashboardPage() {
           <StatCard label="Próximos passos vencidos" value={overdue} icon={<AlertTriangle className="h-4 w-4" />} tone="destructive" hint="ação imediata" />
           <StatCard label="Próximos passos da semana" value={nextThisWeek} icon={<CalendarClock className="h-4 w-4" />} tone="info" hint="agenda da carteira" />
           <StatCard label="Bases recebidas" value={clientBases} icon={<FileUp className="h-4 w-4" />} hint="atividades com base" />
-          <StatCard
-            label="Formulários (semana)"
-            value={formsWeek}
-            icon={<ClipboardList className="h-4 w-4" />}
-            tone={formsPending > 0 ? "warning" : "info"}
-            hint={formsPending > 0 ? `${formsPending} pendente${formsPending > 1 ? "s" : ""} · ${formsTotal} no total` : `${formsTotal} no total`}
-          />
         </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-3">
-            <div>
-              <CardTitle className="flex items-center gap-2 font-display">
-                <ClipboardList className="h-4 w-4 text-primary" /> Submissões de Google Forms
-              </CardTitle>
-              <p className="text-xs text-muted-foreground mt-1">Últimos envios recebidos via prospecção</p>
-            </div>
-            <Badge variant="outline" className="tabular-nums">{formsTotal}</Badge>
-          </CardHeader>
-          <CardContent>
-            {formSubmissions.length === 0 ? (
-              <div className="py-8 text-center text-sm text-muted-foreground">Nenhuma submissão registrada ainda.</div>
-            ) : (
+        {missionAlerts.length > 0 && (
+          <Card className="border-warning/40">
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
+              <div>
+                <CardTitle className="flex items-center gap-2 font-display">
+                  <AlertTriangle className="h-4 w-4 text-warning" /> Alertas de configuração
+                </CardTitle>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Mudanças no Kanban que exigem ajuste no Google Forms
+                </p>
+              </div>
+              <Badge variant="outline" className="tabular-nums">{missionAlerts.length}</Badge>
+            </CardHeader>
+            <CardContent>
               <div className="divide-y divide-border/50">
-                {formSubmissions.slice(0, 8).map((sub: any) => {
-                  const payload = sub.payload ?? {};
-                  const agencyName = payload.agency_name ?? payload.nome ?? payload.razao_social ?? payload["Nome da Imobiliária"] ?? sub.sheet_name ?? "Submissão sem nome";
-                  const author = payload.consultant_name ?? payload.consultor ?? payload["Consultor"] ?? payload.email ?? "—";
-                  const when = sub.response_timestamp ?? sub.created_at;
-                  const isProcessed = sub.processing_status === "processed";
-                  const isFailed = sub.processing_status === "failed";
-                  const tone = isProcessed ? "success" : isFailed ? "destructive" : "warning";
-                  const toneClass = tone === "success" ? "text-success border-success/40" : tone === "destructive" ? "text-destructive border-destructive/40" : "text-warning border-warning/40";
-                  const statusLabel = isProcessed ? "Processado" : isFailed ? `Falhou${sub.error_code ? ` · ${sub.error_code}` : ""}` : "Pendente";
-                  const content = (
-                    <div className="flex flex-wrap items-center justify-between gap-3 py-3 px-2 -mx-2 rounded-lg hover:bg-accent/20 transition-colors">
-                      <div className="min-w-0">
-                        <div className="font-medium truncate">{agencyName}</div>
-                        <div className="text-xs text-muted-foreground mt-1 truncate">{author}</div>
+                {missionAlerts.map((alert: any) => {
+                  const tone = alert.severity === "critical" ? "destructive" : alert.severity === "warning" ? "warning" : "info";
+                  const toneClass = tone === "destructive" ? "text-destructive border-destructive/40" : tone === "warning" ? "text-warning border-warning/40" : "text-info border-info/40";
+                  return (
+                    <div key={alert.id} className="flex flex-wrap items-start justify-between gap-3 py-3 px-2 -mx-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className={toneClass}>{alert.severity}</Badge>
+                          <div className="font-medium">{alert.title}</div>
+                        </div>
+                        {alert.description && (
+                          <div className="text-xs text-muted-foreground mt-1">{alert.description}</div>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        <Badge variant="outline" className={toneClass}>{statusLabel}</Badge>
-                        <span className="text-xs text-muted-foreground tabular-nums">{when ? new Date(when).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "—"}</span>
+                        <span className="text-xs text-muted-foreground tabular-nums">{new Date(alert.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={async () => {
+                            await supabase.from("mission_control_alerts").update({ resolved_at: new Date().toISOString() }).eq("id", alert.id);
+                            queryClient.invalidateQueries({ queryKey: ["mission-control-alerts"] });
+                          }}
+                        >
+                          Resolver
+                        </Button>
                       </div>
                     </div>
                   );
-                  return sub.agency_id ? (
-                    <Link key={sub.id} to="/portfolio/$agencyId" params={{ agencyId: sub.agency_id }}>{content}</Link>
-                  ) : (
-                    <div key={sub.id}>{content}</div>
-                  );
                 })}
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
+
 
         <Card>
           <CardHeader><CardTitle className="font-display">Atividades da carteira</CardTitle></CardHeader>
