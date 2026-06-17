@@ -298,6 +298,12 @@ function EditAgencyDialog({ agency, onSaved, triggerLabel, triggerVariant }: { a
               <span className="text-sm text-muted-foreground">Marcar para escalonar diretoria</span>
             </div>
           </EField>
+          <EField label="Notificar consultor por e-mail" full>
+            <div className="flex items-center gap-3">
+              <Switch checked={form.notify_consultant_on_change} onCheckedChange={(v) => set("notify_consultant_on_change", v)} />
+              <span className="text-sm text-muted-foreground">Quando desativado, o consultor não recebe avisos automáticos de mudança de etapa desta imobiliária.</span>
+            </div>
+          </EField>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
