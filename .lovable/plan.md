@@ -1,115 +1,70 @@
-# Movimentação da Carteira — Plano de Implementação
+## Escopo
 
-## Visão Geral
+Mudanças grandes em 3 áreas (Importação, Carteira/Kanban) + 2 novas abas (Painel Administrativo, Comunicação). Vou dividir em fases para entregar com qualidade.
 
-Nova seção no Dashboard Executivo dedicada à inteligência operacional da carteira: o que mudou, quem se moveu no funil, onde a operação está parada. Snapshot semanal + log granular de alterações alimentam comparativos, timeline, fluxo de movimentação e composição por etapa.
+---
 
-## 1. Banco de Dados (migration)
+### Fase 1 — Importação de Clientes (rápido)
 
-### Tabela `kanban_stage_snapshots`
-Foto semanal da composição do kanban. Permite comparar "mesmas imobiliárias ou trocou?".
-- `id`, `snapshot_date`, `week_start`, `week_end`
-- `agency_id`, `agency_name`, `status`, `consultant_id`, `regional_director`
-- `contract_stock`, `c_level_support_needed`, `created_at`
-- Índices: `(week_start)`, `(status, week_start)`, `(agency_id, week_start)`
-- RLS: leitura para admin/manager/consultant (mesma regra do dashboard atual)
+1. **Limpeza de linhas vazias**: no parser, descartar linhas onde todas as células relevantes estão vazias (ou apenas whitespace). Aplicar antes do mapeamento.
+2. **Imóvel comercial → subtipo "Casa"**: na normalização, quando `tipo_imovel === "Comercial"`, forçar `subtipo_imovel = "Casa"` independente do valor de entrada (ex.: "Ponto comercial" deixa de quebrar).
 
-### Tabela `agency_change_log`
-Log granular de toda alteração de campo.
-- `id`, `agency_id`, `agency_name`
-- `field_name`, `old_value` (text), `new_value` (text)
-- `previous_status`, `new_status`, `is_stage_change` (bool)
-- `change_source` (`slack` | `manual` | `import` | `bot`)
-- `changed_by` (uuid), `changed_by_name`, `slack_user_id`, `consultant_id`
-- `changed_at`
-- Índices: `(changed_at desc)`, `(agency_id, changed_at)`, `(is_stage_change, changed_at)`
+Arquivos: `src/lib/client-import/heuristics.ts`, `src/lib/client-import/exporter.ts`, `src/routes/_authenticated/import-clients.tsx`.
 
-### Trigger de captura automática
-Trigger `BEFORE UPDATE` em `real_estate_agencies`:
-- Comparar OLD vs NEW para os campos relevantes (`negotiation_status`, `contract_stock`, `next_steps`, `feedback`, `current_offer`, `c_level_support_needed`, `main_contact`, `consultant_id`, `guarantor_type`, `current_guarantor`, `regional_director`).
-- Gravar uma linha em `agency_change_log` por campo alterado.
-- Se `negotiation_status` mudou → `is_stage_change = true` + `previous_status`/`new_status`.
-- Origem: ler de `current_setting('app.change_source', true)` (default `manual`). Slack/import setam esse GUC antes do update; web usa default.
+---
 
-### Função de snapshot
-`public.generate_kanban_snapshot()` — insere foto atual de todas as agências para a semana corrente (idempotente por `(agency_id, week_start)`).
+### Fase 2 — Kanban da Carteira
 
-### Cron semanal
-`pg_cron` toda segunda 08:00 (America/Sao_Paulo) chamando `generate_kanban_snapshot()`. SQL via insert tool (não migration).
+1. **Drag em todo o card**: remover handle restrito aos 6 pontos; aplicar `{...listeners} {...attributes}` no container do card inteiro. Manter clique em botões/links sem disparar drag (usar `pointer-events` ou stopPropagation nos botões internos).
+2. **Novo status "Em precificação"**: adicionar ao enum `negotiation_status` no banco, logo após "Base recebida" (ou equivalente), e à lista de colunas do kanban no front.
+3. **Kanban customizável** (reordenar/criar/excluir status):
+   - Nova tabela `kanban_stages` (id, key, label, order, sla_days, color, is_system, created_at, updated_at).
+   - Seed com os status atuais (incluindo "Em precificação").
+   - Kanban passa a ler colunas dessa tabela em vez do enum hardcoded.
+   - Ao criar/excluir status pelo kanban, gerar um alerta em `mission_control_alerts` (nova tabela) com tipo `kanban_stage_change_requires_forms_update`, que o usuário marca como concluído.
+4. **SLA por etapa**: campo `sla_days` em `kanban_stages`; badge no card mostra dias restantes/atrasados conforme o SLA da etapa atual (usa `updated_at` ou data de entrada na etapa — vou usar `last_stage_change_at`, novo campo em `real_estate_agencies`, alimentado via trigger quando `negotiation_status` muda).
 
-## 2. Server Functions
+Arquivos: migration; `src/components/kanban/*`; `src/routes/_authenticated/portfolio.tsx`; novos hooks `useKanbanStages`, `useMissionControlAlerts`.
 
-`src/lib/movement.functions.ts`:
-- `getMovementOverview({ from, to, filters })` → cards (atualizadas, mudanças de etapa, novas, sem update 15+, etapas ganho/perda).
-- `getRecentUpdates({ filters, limit })` → linhas de `agency_change_log` com join em consultor/agência.
-- `getStageMovements({ filters })` → apenas `is_stage_change = true` + cálculo de tempo na etapa anterior.
-- `getWeeklyStageComparison()` → atual vs snapshot semana passada por etapa (entraram/saíram/permaneceram).
-- `getStageComposition(status)` → listas: permaneceram, entraram, saíram (vs snapshot anterior).
-- `getStageFlow()` → arestas A→B com contagem (últimos 7d) para Sankey.
-- `getStageAging()` → tempo médio em cada etapa hoje.
+---
 
-Todas com `requireSupabaseAuth`; filtros zod-validados.
+### Fase 3 — Painel Administrativo (nova aba lateral)
 
-## 3. Integração das origens (change_source)
+Rota: `/_authenticated/admin`. Acesso: apenas role `admin` (já existe `has_role`).
 
-- **Slack flows** (`src/lib/slack/flows.server.ts`): antes de cada update em `real_estate_agencies`, executar `SELECT set_config('app.change_source', 'slack', true)` na mesma transação (usar `supabaseAdmin.rpc` helper).
-- **Import** (`src/routes/_authenticated/import.tsx`): mesmo padrão com `'import'`.
-- **Manual web**: default do trigger já é `manual`, nada a fazer.
+Seções iniciais (UI dinâmica para parâmetros):
+- **Status do Kanban**: tabela editável de `kanban_stages` (reordenar via drag, editar label/cor/SLA, criar/excluir).
+- **SLAs**: visão consolidada (mesma fonte que kanban_stages).
+- **Campos customizáveis**: placeholder por ora (form simples para futura expansão), com nota de evolução.
 
-Helper utilitário `setChangeSource(client, source)` em `src/lib/audit.server.ts`.
+Sidebar: adicionar item "Painel Administrativo" visível apenas para admins.
 
-## 4. UI — Rota `/dashboard/movement`
+---
 
-Nova rota `src/routes/_authenticated/dashboard.movement.tsx` (e link no dashboard atual + sidebar).
+### Fase 4 — Comunicação (nova aba lateral)
 
-### Layout (dark premium, tokens semânticos)
-- **Header**: "Movimentação da Carteira" + subtítulo + barra de filtros (período, consultor, regional, UF, etapa, origem, C-Level, estoque mínimo).
-- **Linha 1 — Cards** (6 cards): atualizadas/semana, mudanças de etapa, novas, sem update 15+d, etapas ganho, etapas perda.
-- **Linha 2 — Comparativo Semanal por Etapa**: tabela com Atual / Semana passada / Δ abs / Δ % / Entraram / Saíram / Permaneceram. Clique na linha → drawer com composição.
-- **Linha 3 (2 colunas)**:
-  - **Fluxo de Movimentação** (Sankey simplificado com SVG custom — sem nova dep; arestas A→B agrupadas).
-  - **Aging por etapa** (barras horizontais com tempo médio).
-- **Linha 4 — Timeline**: feed cronológico das últimas alterações (avatar consultor, agência, "Status X→Y" / "Estoque 104→130", origem badge).
-- **Linha 5 — Tabelas**:
-  - Aba "Atualizações recentes" (todos os campos)
-  - Aba "Movimentações de Kanban" (apenas stage changes + tempo na etapa anterior)
-- **Drawer composição da etapa**: 4 listas (permaneceram, entraram, saíram, novas no sistema nessa etapa).
+Rota: `/_authenticated/communication`.
 
-### Componentes novos
-- `MovementCard` (variação do `StatCard` com delta).
-- `SankeyFlow` (SVG puro, ~150 LOC).
-- `StageComparisonTable`.
-- `ChangeTimeline`.
-- `StageCompositionDrawer`.
+- Nova tabela `message_templates` (id, channel `whatsapp|email`, name, subject, body com variáveis tipo `{{agency_name}}`, trigger `manual|sla_overdue|...`, active).
+- CRUD de templates na UI com preview e lista de variáveis disponíveis.
+- Disparo automático: server function `evaluate-sla-alerts` (chamada por cron diário) que detecta agências com SLA estourado e:
+  - cria notificação no mission control para o consultor responsável,
+  - envia WhatsApp (via Twilio gateway, se configurado) e/ou e-mail (via infra de app emails) usando o template marcado como `sla_overdue` ativo.
+- Disparo manual: botão "Enviar mensagem" no card da agência abre modal com escolha de template + canal.
 
-## 5. Snapshot inicial
+Item de sidebar "Comunicação" para todos os usuários autenticados (criação/edição de templates apenas para admin).
 
-Gerar snapshot da semana atual no momento da migração (assim já há baseline para "semana passada" depois) — chamada da função de snapshot inserida via insert tool após a migration.
+---
 
-## Arquivos
+## Detalhes técnicos resumidos
 
-**Migrations:**
-- `kanban_stage_snapshots` + `agency_change_log` + trigger + função snapshot + RLS + grants.
+- **Migrations**: enum update; novas tabelas `kanban_stages`, `mission_control_alerts`, `message_templates`; coluna `last_stage_change_at` + trigger em `real_estate_agencies`. Todos com GRANT + RLS.
+- **Drag-and-drop**: dnd-kit já está no projeto; mover listeners para o wrapper do card.
+- **Cron SLA**: novo endpoint `/api/public/cron/sla-evaluator` protegido por `SLACK_CRON_SECRET` (reaproveitar padrão), agendado via pg_cron.
+- **Telemetria**: cada criação/exclusão de stage grava em `agency_audit_events` para histórico.
 
-**Insert tool (pós-migration):**
-- Agendar cron semanal.
-- Gerar snapshot inicial.
+---
 
-**Backend:**
-- `src/lib/audit.server.ts` — helper `setChangeSource`.
-- `src/lib/movement.functions.ts` — todas as server fns.
-- Editar `src/lib/slack/flows.server.ts` para chamar `setChangeSource('slack')` antes de updates.
-- Editar `src/routes/_authenticated/import.tsx` para `setChangeSource('import')`.
+## Pergunta antes de implementar
 
-**Frontend:**
-- `src/routes/_authenticated/dashboard.movement.tsx` (rota principal).
-- `src/components/movement/` — `MovementCard.tsx`, `SankeyFlow.tsx`, `StageComparisonTable.tsx`, `ChangeTimeline.tsx`, `StageCompositionDrawer.tsx`, `MovementFilters.tsx`.
-- Link no `src/routes/_authenticated/dashboard.tsx` e na sidebar (`src/routes/_authenticated/route.tsx`).
-
-## Notas técnicas
-
-- Sem novas dependências (Sankey em SVG puro).
-- `old_value`/`new_value` armazenados como `text` (cast genérico) — UI formata por tipo de campo.
-- `week_start` calculado como segunda-feira (`date_trunc('week', date)` no Postgres já retorna segunda).
-- Trigger ignora updates onde somente `updated_at`/`updated_by` mudaram.
-- Filtros respeitam RLS naturalmente (queries vão pelo client autenticado).
+Posso seguir essa divisão e implementar tudo nesta resposta? Ou prefere que eu entregue em fases (sugiro fase 1+2 agora, fase 3+4 numa próxima rodada) para validar cada etapa antes?
