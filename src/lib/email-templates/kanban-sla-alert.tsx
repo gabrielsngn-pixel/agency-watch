@@ -29,6 +29,7 @@ const KanbanSlaAlert = ({
   alert_type = 'stage_idle',
   days_idle = 0,
   threshold_days = 0,
+  form_url = FORM_URL,
 }: Props) => {
   const location = [agency_city, agency_state].filter(Boolean).join(' / ')
   const reason = labelByType[alert_type] ?? 'sem atualizações recentes'
