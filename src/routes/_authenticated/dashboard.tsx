@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Building2, Briefcase, Target, AlertTriangle, ArrowRight, CalendarClock,
-  Activity, Zap, TrendingUp, CalendarCheck, RefreshCw, FileUp,
+  Activity, Zap, TrendingUp, CalendarCheck, RefreshCw, FileUp, ClipboardList,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
