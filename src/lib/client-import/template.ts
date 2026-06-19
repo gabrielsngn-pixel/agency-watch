@@ -145,14 +145,15 @@ export const TEMPLATES: Record<
     label: "Informações simplificadas",
     description: "Modelo Credipronto/Cury (20 campos).",
     columns: SIMPLIFIED_COLUMNS,
-    required: ["documento", "nome_completo", "valor_aluguel"],
+    required: ["documento", "nome_completo", "valor_aluguel", "tipo_imovel", "numero_imovel"],
   },
   complete: {
     label: "Informações completas",
     description: "Inclui contrato, cobertura, garantidor e cidade/UF (30 campos).",
     columns: COMPLETE_COLUMNS,
-    required: ["documento", "cep", "tipo_imovel"],
+    required: ["documento", "cep", "tipo_imovel", "numero_imovel"],
   },
+
 };
 
 // Compat com código antigo.
