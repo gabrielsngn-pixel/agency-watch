@@ -516,6 +516,11 @@ function normalizeValue(col: ImportColumn, raw: any): string | number {
     case "data_nascimento":
     case "data_assinatura":
       return formatDateBR(parseDate(raw));
+    case "numero_imovel": {
+      // Credpronto exige numérico: descarta "s/n", "SN", letras, etc.
+      const d = String(raw).replace(/\D+/g, "");
+      return d;
+    }
     case "valor_aluguel":
     case "valor_condominio":
     case "valor_taxas":
@@ -533,3 +538,4 @@ function normalizeValue(col: ImportColumn, raw: any): string | number {
       return String(raw).trim();
   }
 }
+
