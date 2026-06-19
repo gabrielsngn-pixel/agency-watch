@@ -266,11 +266,25 @@ function ImportClientsPage() {
       toast.error("Nenhuma linha para exportar.");
       return;
     }
+    // Validação local do schema antes de gerar o arquivo — apenas linhas
+    // válidas são exportadas (Credpronto rejeita o lote inteiro caso contrário).
+    const validRows = rows.filter((r) => r._errors.length === 0);
+    if (!validRows.length) {
+      const sample = rows[0]?._errors.slice(0, 3).join("; ") ?? "";
+      toast.error(
+        `Nenhuma linha válida para exportar. Corrija as pendências antes de gerar o arquivo.${sample ? ` Ex.: ${sample}` : ""}`,
+      );
+      return;
+    }
+    if (stats.invalid > 0) {
+      toast.warning(
+        `${stats.invalid} linha(s) com pendência foram ignoradas na exportação. Apenas ${validRows.length} linha(s) válidas serão enviadas à Credpronto.`,
+      );
+    }
     setBusy(true);
     try {
-      // Exporta TODAS as linhas — pendências são apontadas mas não impedem.
-      const allRows: StandardRow[] = rows.map(({ _errors, _idx, _cepDerived, ...rest }) => rest);
-      const blob = buildImportCsv(allRows, templateKey);
+      const exportRows: StandardRow[] = validRows.map(({ _errors, _idx, _cepDerived, ...rest }) => rest);
+      const blob = buildImportCsv(exportRows, templateKey);
 
       const ts = new Date().toISOString().replace(/[:.]/g, "-");
       const safeName = (filename || "import").replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9-_]+/g, "_");
@@ -304,7 +318,7 @@ function ImportClientsPage() {
       URL.revokeObjectURL(url);
 
       toast.success(
-        `Arquivo gerado (${rows.length} linhas${stats.invalid ? `, ${stats.invalid} com pendência` : ""}).`,
+        `Arquivo gerado com ${validRows.length} linha(s) válidas${stats.invalid ? ` (${stats.invalid} ignoradas)` : ""}.`,
       );
     } catch (e: any) {
       toast.error(e?.message ?? "Falha ao gerar arquivo.");
@@ -312,6 +326,7 @@ function ImportClientsPage() {
       setBusy(false);
     }
   };
+
 
   const cepDerivedCount = useMemo(
     () => rows.reduce((acc, r) => acc + Object.values(r._cepDerived).filter(Boolean).length, 0),
