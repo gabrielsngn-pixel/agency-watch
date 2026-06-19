@@ -525,7 +525,8 @@ function ImportClientsPage() {
             <div className="flex items-start gap-2 text-xs text-muted-foreground p-3 rounded-lg bg-muted/30 border border-border">
               <Info className="h-3.5 w-3.5 mt-0.5 text-info shrink-0" />
               <div>
-                <strong>Pendências não bloqueiam a exportação.</strong> Os campos destacados em azul com{" "}
+                <strong>Linhas com pendência são ignoradas na exportação</strong> para evitar rejeição da Credpronto (CPF/CNPJ inválido, tipo de imóvel faltando, número não-numérico, etc.). Os campos destacados em azul com{" "}
+
                 <MapPin className="inline h-3 w-3" /> foram preenchidos automaticamente a partir do CEP informado na planilha. O arquivo original é descartado — apenas o XLSX padronizado fica salvo em pasta privada do seu usuário no storage.
               </div>
             </div>
