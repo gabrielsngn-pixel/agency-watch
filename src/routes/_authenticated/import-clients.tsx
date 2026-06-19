@@ -98,9 +98,26 @@ function ImportClientsPage() {
       const v = std[req];
       if (v === undefined || v === null || v === "") errors.push(`${COLUMN_LABELS[req]} faltando`);
     }
-    if (std.documento && !isValidDocumento(std.documento)) errors.push("CPF/CNPJ inválido");
+    // Documento: validação PF (CPF, 11) x PJ (CNPJ, 14) — schema "oneOf" da Credpronto.
+    const docDigits = onlyDigits(std.documento);
+    if (std.documento) {
+      if (docDigits.length === 11) {
+        if (!isValidDocumento(docDigits)) errors.push("CPF inválido");
+      } else if (docDigits.length === 14) {
+        if (!isValidDocumento(docDigits)) errors.push("CNPJ inválido");
+      } else {
+        errors.push("Documento deve ser CPF (11) ou CNPJ (14 dígitos)");
+      }
+    }
+    // Número do imóvel: Credpronto exige numérico.
+    if (std.numero_imovel !== undefined && std.numero_imovel !== "") {
+      if (!/^\d+$/.test(String(std.numero_imovel))) {
+        errors.push("Número do imóvel deve ser numérico");
+      }
+    }
     return errors;
   };
+
 
   const rebuildPreview = (p: ParsedTable, m: Record<string, ImportColumn | "">, tplKey: TemplateKey) => {
     const next: PreviewRow[] = [];
