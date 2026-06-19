@@ -98,9 +98,26 @@ function ImportClientsPage() {
       const v = std[req];
       if (v === undefined || v === null || v === "") errors.push(`${COLUMN_LABELS[req]} faltando`);
     }
-    if (std.documento && !isValidDocumento(std.documento)) errors.push("CPF/CNPJ inválido");
+    // Documento: validação PF (CPF, 11) x PJ (CNPJ, 14) — schema "oneOf" da Credpronto.
+    const docDigits = onlyDigits(std.documento);
+    if (std.documento) {
+      if (docDigits.length === 11) {
+        if (!isValidDocumento(docDigits)) errors.push("CPF inválido");
+      } else if (docDigits.length === 14) {
+        if (!isValidDocumento(docDigits)) errors.push("CNPJ inválido");
+      } else {
+        errors.push("Documento deve ser CPF (11) ou CNPJ (14 dígitos)");
+      }
+    }
+    // Número do imóvel: Credpronto exige numérico.
+    if (std.numero_imovel !== undefined && std.numero_imovel !== "") {
+      if (!/^\d+$/.test(String(std.numero_imovel))) {
+        errors.push("Número do imóvel deve ser numérico");
+      }
+    }
     return errors;
   };
+
 
   const rebuildPreview = (p: ParsedTable, m: Record<string, ImportColumn | "">, tplKey: TemplateKey) => {
     const next: PreviewRow[] = [];
@@ -249,11 +266,25 @@ function ImportClientsPage() {
       toast.error("Nenhuma linha para exportar.");
       return;
     }
+    // Validação local do schema antes de gerar o arquivo — apenas linhas
+    // válidas são exportadas (Credpronto rejeita o lote inteiro caso contrário).
+    const validRows = rows.filter((r) => r._errors.length === 0);
+    if (!validRows.length) {
+      const sample = rows[0]?._errors.slice(0, 3).join("; ") ?? "";
+      toast.error(
+        `Nenhuma linha válida para exportar. Corrija as pendências antes de gerar o arquivo.${sample ? ` Ex.: ${sample}` : ""}`,
+      );
+      return;
+    }
+    if (stats.invalid > 0) {
+      toast.warning(
+        `${stats.invalid} linha(s) com pendência foram ignoradas na exportação. Apenas ${validRows.length} linha(s) válidas serão enviadas à Credpronto.`,
+      );
+    }
     setBusy(true);
     try {
-      // Exporta TODAS as linhas — pendências são apontadas mas não impedem.
-      const allRows: StandardRow[] = rows.map(({ _errors, _idx, _cepDerived, ...rest }) => rest);
-      const blob = buildImportCsv(allRows, templateKey);
+      const exportRows: StandardRow[] = validRows.map(({ _errors, _idx, _cepDerived, ...rest }) => rest);
+      const blob = buildImportCsv(exportRows, templateKey);
 
       const ts = new Date().toISOString().replace(/[:.]/g, "-");
       const safeName = (filename || "import").replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9-_]+/g, "_");
@@ -287,7 +318,7 @@ function ImportClientsPage() {
       URL.revokeObjectURL(url);
 
       toast.success(
-        `Arquivo gerado (${rows.length} linhas${stats.invalid ? `, ${stats.invalid} com pendência` : ""}).`,
+        `Arquivo gerado com ${validRows.length} linha(s) válidas${stats.invalid ? ` (${stats.invalid} ignoradas)` : ""}.`,
       );
     } catch (e: any) {
       toast.error(e?.message ?? "Falha ao gerar arquivo.");
@@ -295,6 +326,7 @@ function ImportClientsPage() {
       setBusy(false);
     }
   };
+
 
   const cepDerivedCount = useMemo(
     () => rows.reduce((acc, r) => acc + Object.values(r._cepDerived).filter(Boolean).length, 0),
@@ -493,7 +525,8 @@ function ImportClientsPage() {
             <div className="flex items-start gap-2 text-xs text-muted-foreground p-3 rounded-lg bg-muted/30 border border-border">
               <Info className="h-3.5 w-3.5 mt-0.5 text-info shrink-0" />
               <div>
-                <strong>Pendências não bloqueiam a exportação.</strong> Os campos destacados em azul com{" "}
+                <strong>Linhas com pendência são ignoradas na exportação</strong> para evitar rejeição da Credpronto (CPF/CNPJ inválido, tipo de imóvel faltando, número não-numérico, etc.). Os campos destacados em azul com{" "}
+
                 <MapPin className="inline h-3 w-3" /> foram preenchidos automaticamente a partir do CEP informado na planilha. O arquivo original é descartado — apenas o XLSX padronizado fica salvo em pasta privada do seu usuário no storage.
               </div>
             </div>
@@ -516,6 +549,11 @@ function normalizeValue(col: ImportColumn, raw: any): string | number {
     case "data_nascimento":
     case "data_assinatura":
       return formatDateBR(parseDate(raw));
+    case "numero_imovel": {
+      // Credpronto exige numérico: descarta "s/n", "SN", letras, etc.
+      const d = String(raw).replace(/\D+/g, "");
+      return d;
+    }
     case "valor_aluguel":
     case "valor_condominio":
     case "valor_taxas":
@@ -533,3 +571,4 @@ function normalizeValue(col: ImportColumn, raw: any): string | number {
       return String(raw).trim();
   }
 }
+
