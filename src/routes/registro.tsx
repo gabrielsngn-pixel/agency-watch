@@ -246,7 +246,7 @@ function SuccessPanel({ message, onReset }: { message: string; onReset: () => vo
 
 // --- 1) Anexar base ---------------------------------------------------------
 
-function AttachBaseForm({ email, disabled, consultantName }: { email: string; disabled: boolean; consultantName?: string }) {
+function AttachBaseForm({ email, disabled, consultantName, onGoNewAgency }: { email: string; disabled: boolean; consultantName?: string; onGoNewAgency?: () => void }) {
   const [agency, setAgency] = useState<AgencyOption | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [baseOrigin, setBaseOrigin] = useState("");
