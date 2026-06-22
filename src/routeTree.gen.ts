@@ -37,6 +37,8 @@ import { Route as ApiPublicSlackHealthRouteImport } from './routes/api/public/sl
 import { Route as ApiPublicSlackEventsRouteImport } from './routes/api/public/slack.events'
 import { Route as ApiPublicSlackCronRouteImport } from './routes/api/public/slack.cron'
 import { Route as ApiPublicSlackCommandsRouteImport } from './routes/api/public/slack.commands'
+import { Route as ApiPublicRegistroSubmitRouteImport } from './routes/api/public/registro.submit'
+import { Route as ApiPublicRegistroLookupRouteImport } from './routes/api/public/registro.lookup'
 import { Route as ApiPublicGoogleFormsSyncRouteImport } from './routes/api/public/google-forms.sync'
 import { Route as ApiPublicGoogleFormsAgenciesRouteImport } from './routes/api/public/google-forms.agencies'
 import { Route as ApiPublicGoogleFormsActivitiesRouteImport } from './routes/api/public/google-forms.activities'
@@ -193,6 +195,16 @@ const ApiPublicSlackCommandsRoute = ApiPublicSlackCommandsRouteImport.update({
   path: '/api/public/slack/commands',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicRegistroSubmitRoute = ApiPublicRegistroSubmitRouteImport.update({
+  id: '/api/public/registro/submit',
+  path: '/api/public/registro/submit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicRegistroLookupRoute = ApiPublicRegistroLookupRouteImport.update({
+  id: '/api/public/registro/lookup',
+  path: '/api/public/registro/lookup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicGoogleFormsSyncRoute =
   ApiPublicGoogleFormsSyncRouteImport.update({
     id: '/api/public/google-forms/sync',
@@ -234,6 +246,8 @@ export interface FileRoutesByFullPath {
   '/api/public/google-forms/activities': typeof ApiPublicGoogleFormsActivitiesRoute
   '/api/public/google-forms/agencies': typeof ApiPublicGoogleFormsAgenciesRoute
   '/api/public/google-forms/sync': typeof ApiPublicGoogleFormsSyncRoute
+  '/api/public/registro/lookup': typeof ApiPublicRegistroLookupRoute
+  '/api/public/registro/submit': typeof ApiPublicRegistroSubmitRoute
   '/api/public/slack/commands': typeof ApiPublicSlackCommandsRoute
   '/api/public/slack/cron': typeof ApiPublicSlackCronRoute
   '/api/public/slack/events': typeof ApiPublicSlackEventsRoute
@@ -265,6 +279,8 @@ export interface FileRoutesByTo {
   '/api/public/google-forms/activities': typeof ApiPublicGoogleFormsActivitiesRoute
   '/api/public/google-forms/agencies': typeof ApiPublicGoogleFormsAgenciesRoute
   '/api/public/google-forms/sync': typeof ApiPublicGoogleFormsSyncRoute
+  '/api/public/registro/lookup': typeof ApiPublicRegistroLookupRoute
+  '/api/public/registro/submit': typeof ApiPublicRegistroSubmitRoute
   '/api/public/slack/commands': typeof ApiPublicSlackCommandsRoute
   '/api/public/slack/cron': typeof ApiPublicSlackCronRoute
   '/api/public/slack/events': typeof ApiPublicSlackEventsRoute
@@ -299,6 +315,8 @@ export interface FileRoutesById {
   '/api/public/google-forms/activities': typeof ApiPublicGoogleFormsActivitiesRoute
   '/api/public/google-forms/agencies': typeof ApiPublicGoogleFormsAgenciesRoute
   '/api/public/google-forms/sync': typeof ApiPublicGoogleFormsSyncRoute
+  '/api/public/registro/lookup': typeof ApiPublicRegistroLookupRoute
+  '/api/public/registro/submit': typeof ApiPublicRegistroSubmitRoute
   '/api/public/slack/commands': typeof ApiPublicSlackCommandsRoute
   '/api/public/slack/cron': typeof ApiPublicSlackCronRoute
   '/api/public/slack/events': typeof ApiPublicSlackEventsRoute
@@ -333,6 +351,8 @@ export interface FileRouteTypes {
     | '/api/public/google-forms/activities'
     | '/api/public/google-forms/agencies'
     | '/api/public/google-forms/sync'
+    | '/api/public/registro/lookup'
+    | '/api/public/registro/submit'
     | '/api/public/slack/commands'
     | '/api/public/slack/cron'
     | '/api/public/slack/events'
@@ -364,6 +384,8 @@ export interface FileRouteTypes {
     | '/api/public/google-forms/activities'
     | '/api/public/google-forms/agencies'
     | '/api/public/google-forms/sync'
+    | '/api/public/registro/lookup'
+    | '/api/public/registro/submit'
     | '/api/public/slack/commands'
     | '/api/public/slack/cron'
     | '/api/public/slack/events'
@@ -397,6 +419,8 @@ export interface FileRouteTypes {
     | '/api/public/google-forms/activities'
     | '/api/public/google-forms/agencies'
     | '/api/public/google-forms/sync'
+    | '/api/public/registro/lookup'
+    | '/api/public/registro/submit'
     | '/api/public/slack/commands'
     | '/api/public/slack/cron'
     | '/api/public/slack/events'
@@ -417,6 +441,8 @@ export interface RootRouteChildren {
   ApiPublicGoogleFormsActivitiesRoute: typeof ApiPublicGoogleFormsActivitiesRoute
   ApiPublicGoogleFormsAgenciesRoute: typeof ApiPublicGoogleFormsAgenciesRoute
   ApiPublicGoogleFormsSyncRoute: typeof ApiPublicGoogleFormsSyncRoute
+  ApiPublicRegistroLookupRoute: typeof ApiPublicRegistroLookupRoute
+  ApiPublicRegistroSubmitRoute: typeof ApiPublicRegistroSubmitRoute
   ApiPublicSlackCommandsRoute: typeof ApiPublicSlackCommandsRoute
   ApiPublicSlackCronRoute: typeof ApiPublicSlackCronRoute
   ApiPublicSlackEventsRoute: typeof ApiPublicSlackEventsRoute
@@ -626,6 +652,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicSlackCommandsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/registro/submit': {
+      id: '/api/public/registro/submit'
+      path: '/api/public/registro/submit'
+      fullPath: '/api/public/registro/submit'
+      preLoaderRoute: typeof ApiPublicRegistroSubmitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/registro/lookup': {
+      id: '/api/public/registro/lookup'
+      path: '/api/public/registro/lookup'
+      fullPath: '/api/public/registro/lookup'
+      preLoaderRoute: typeof ApiPublicRegistroLookupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/google-forms/sync': {
       id: '/api/public/google-forms/sync'
       path: '/api/public/google-forms/sync'
@@ -708,6 +748,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicGoogleFormsActivitiesRoute: ApiPublicGoogleFormsActivitiesRoute,
   ApiPublicGoogleFormsAgenciesRoute: ApiPublicGoogleFormsAgenciesRoute,
   ApiPublicGoogleFormsSyncRoute: ApiPublicGoogleFormsSyncRoute,
+  ApiPublicRegistroLookupRoute: ApiPublicRegistroLookupRoute,
+  ApiPublicRegistroSubmitRoute: ApiPublicRegistroSubmitRoute,
   ApiPublicSlackCommandsRoute: ApiPublicSlackCommandsRoute,
   ApiPublicSlackCronRoute: ApiPublicSlackCronRoute,
   ApiPublicSlackEventsRoute: ApiPublicSlackEventsRoute,
