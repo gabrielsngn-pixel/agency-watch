@@ -30,7 +30,9 @@ const CONSULTANT_KEY = "registro:consultant_email";
 function RegistroPage() {
   const [email, setEmail] = useState("");
   const [consultantName, setConsultantName] = useState<string | null>(null);
-  const [consultantError, setConsultantError] = useState<string | null>(null);
+  const [consultantStatus, setConsultantStatus] = useState<"idle" | "checking" | "found" | "new" | "error">("idle");
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [newName, setNewName] = useState("");
   const [stages, setStages] = useState<StageOption[]>([]);
   const [tab, setTab] = useState("attach_base");
 
@@ -49,27 +51,39 @@ function RegistroPage() {
   // Validate consultant email (debounced).
   useEffect(() => {
     const trimmed = email.trim().toLowerCase();
-    if (!trimmed.includes("@")) { setConsultantName(null); setConsultantError(null); return; }
+    if (!trimmed.includes("@")) {
+      setConsultantName(null);
+      setConsultantStatus("idle");
+      setStatusMessage(null);
+      return;
+    }
+    setConsultantStatus("checking");
     const t = setTimeout(async () => {
       try {
         const res = await fetch(`/api/public/registro/lookup?type=consultant&email=${encodeURIComponent(trimmed)}`);
         const d = await res.json();
+        window.localStorage.setItem(CONSULTANT_KEY, trimmed);
         if (d.ok && d.found) {
           setConsultantName(d.consultant.name);
-          setConsultantError(null);
-          window.localStorage.setItem(CONSULTANT_KEY, trimmed);
+          setConsultantStatus("found");
+          setStatusMessage(null);
         } else {
           setConsultantName(null);
-          setConsultantError("E-mail não cadastrado como consultor. Fale com o admin.");
+          setConsultantStatus("new");
+          setStatusMessage("E-mail novo: será cadastrado automaticamente ao enviar o primeiro registro.");
         }
       } catch {
-        setConsultantError("Não foi possível validar o e-mail agora.");
+        setConsultantStatus("error");
+        setStatusMessage("Não foi possível validar o e-mail agora.");
       }
     }, 400);
     return () => clearTimeout(t);
   }, [email]);
 
-  const canSubmit = Boolean(consultantName);
+  const isNewConsultant = consultantStatus === "new";
+  const canSubmit =
+    consultantStatus === "found" ||
+    (consultantStatus === "new" && newName.trim().length >= 2);
 
   return (
     <div className="min-h-screen bg-muted/30 py-6 px-4 sm:py-10">
@@ -85,21 +99,37 @@ function RegistroPage() {
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Quem está registrando?</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
-            <Label htmlFor="consultant_email">E-mail do consultor</Label>
-            <Input
-              id="consultant_email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="seu.email@empresa.com"
-            />
-            {consultantName && (
-              <p className="text-xs text-emerald-600">Identificado como <strong>{consultantName}</strong>.</p>
-            )}
-            {consultantError && (
-              <p className="text-xs text-destructive">{consultantError}</p>
+          <CardContent className="space-y-3">
+            <div className="space-y-2">
+              <Label htmlFor="consultant_email">E-mail do consultor</Label>
+              <Input
+                id="consultant_email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="seu.email@empresa.com"
+              />
+              {consultantStatus === "found" && consultantName && (
+                <p className="text-xs text-emerald-600">Identificado como <strong>{consultantName}</strong>.</p>
+              )}
+              {consultantStatus === "checking" && (
+                <p className="text-xs text-muted-foreground">Validando…</p>
+              )}
+              {statusMessage && consultantStatus !== "found" && (
+                <p className={`text-xs ${consultantStatus === "error" ? "text-destructive" : "text-amber-600"}`}>{statusMessage}</p>
+              )}
+            </div>
+            {isNewConsultant && (
+              <div className="space-y-2">
+                <Label htmlFor="consultant_name">Seu nome completo *</Label>
+                <Input
+                  id="consultant_name"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="Como devemos te identificar no CRM"
+                />
+              </div>
             )}
           </CardContent>
         </Card>
@@ -113,22 +143,23 @@ function RegistroPage() {
           </TabsList>
 
           <TabsContent value="attach_base">
-            <AttachBaseForm email={email} disabled={!canSubmit} />
+            <AttachBaseForm email={email} disabled={!canSubmit} consultantName={isNewConsultant ? newName : undefined} />
           </TabsContent>
           <TabsContent value="new_agency">
-            <NewAgencyForm email={email} disabled={!canSubmit} stages={stages} />
+            <NewAgencyForm email={email} disabled={!canSubmit} stages={stages} consultantName={isNewConsultant ? newName : undefined} />
           </TabsContent>
           <TabsContent value="fup">
-            <FupForm email={email} disabled={!canSubmit} />
+            <FupForm email={email} disabled={!canSubmit} consultantName={isNewConsultant ? newName : undefined} />
           </TabsContent>
           <TabsContent value="kanban_move">
-            <KanbanMoveForm email={email} disabled={!canSubmit} stages={stages} />
+            <KanbanMoveForm email={email} disabled={!canSubmit} stages={stages} consultantName={isNewConsultant ? newName : undefined} />
           </TabsContent>
         </Tabs>
       </div>
     </div>
   );
 }
+
 
 // --- Shared agency autocomplete ---------------------------------------------
 
