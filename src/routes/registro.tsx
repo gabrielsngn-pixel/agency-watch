@@ -535,6 +535,9 @@ function FupForm({ email, disabled, stages, consultantName, onGoNewAgency }: { e
             <Label>Precisa de apoio C-Level?</Label>
             <Switch checked={cLevel} onCheckedChange={setCLevel} />
           </div>
+          {disabled && (
+            <p className="text-xs text-amber-600">Preencha seu e-mail (e nome completo, se for novo) em "Quem está registrando?" no topo da página para habilitar o envio.</p>
+          )}
           <Button type="submit" disabled={disabled || loading} className="w-full">{loading ? "Salvando..." : "Registrar atividade"}</Button>
         </form>
       </CardContent>
