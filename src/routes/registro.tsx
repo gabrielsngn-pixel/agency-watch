@@ -303,6 +303,9 @@ function AttachBaseForm({ email, disabled, consultantName, onGoNewAgency }: { em
             <Label htmlFor="notes">Observações</Label>
             <Textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
           </div>
+          {disabled && (
+            <p className="text-xs text-amber-600">Preencha seu e-mail (e nome completo, se for novo) em "Quem está registrando?" no topo da página para habilitar o envio.</p>
+          )}
           <Button type="submit" disabled={disabled || loading} className="w-full">
             {loading ? "Enviando..." : "Enviar base"}
           </Button>
