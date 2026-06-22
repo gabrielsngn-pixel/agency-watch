@@ -1,0 +1,2 @@
+ALTER TABLE public.agency_activities DROP CONSTRAINT IF EXISTS agency_activities_source_check;
+ALTER TABLE public.agency_activities ADD CONSTRAINT agency_activities_source_check CHECK (source = ANY (ARRAY['web','slack','google_forms','whatsapp','import','public_form','other']));
