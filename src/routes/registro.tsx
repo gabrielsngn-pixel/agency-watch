@@ -303,6 +303,9 @@ function AttachBaseForm({ email, disabled, consultantName, onGoNewAgency }: { em
             <Label htmlFor="notes">Observações</Label>
             <Textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
           </div>
+          {disabled && (
+            <p className="text-xs text-amber-600">Preencha seu e-mail (e nome completo, se for novo) em "Quem está registrando?" no topo da página para habilitar o envio.</p>
+          )}
           <Button type="submit" disabled={disabled || loading} className="w-full">
             {loading ? "Enviando..." : "Enviar base"}
           </Button>
@@ -404,6 +407,9 @@ function NewAgencyForm({ email, disabled, stages, consultantName }: { email: str
           </div>
           {attachBase && (
             <Input type="file" accept=".xlsx,.csv,.pdf,.jpg,.jpeg,.png" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+          )}
+          {disabled && (
+            <p className="text-xs text-amber-600">Preencha seu e-mail (e nome completo, se for novo) em "Quem está registrando?" no topo da página para habilitar o envio.</p>
           )}
           <Button type="submit" disabled={disabled || loading} className="w-full">{loading ? "Salvando..." : "Cadastrar imobiliária"}</Button>
         </form>
@@ -529,6 +535,9 @@ function FupForm({ email, disabled, stages, consultantName, onGoNewAgency }: { e
             <Label>Precisa de apoio C-Level?</Label>
             <Switch checked={cLevel} onCheckedChange={setCLevel} />
           </div>
+          {disabled && (
+            <p className="text-xs text-amber-600">Preencha seu e-mail (e nome completo, se for novo) em "Quem está registrando?" no topo da página para habilitar o envio.</p>
+          )}
           <Button type="submit" disabled={disabled || loading} className="w-full">{loading ? "Salvando..." : "Registrar atividade"}</Button>
         </form>
       </CardContent>
