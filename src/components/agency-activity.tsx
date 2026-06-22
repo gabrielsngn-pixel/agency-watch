@@ -28,8 +28,10 @@ export function NewAgencyActivityDialog({ agency, onSaved }: { agency: Agency; o
     status_changed: false,
     new_status: agency.negotiation_status,
     c_level_support_needed: false,
+    attach_as_client_base: false,
   });
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm((current) => ({ ...current, [key]: value }));
+
 
   const submit = async () => {
     if (!form.summary.trim()) return toast.error("Descreva o resumo da atividade.");
@@ -39,7 +41,13 @@ export function NewAgencyActivityDialog({ agency, onSaved }: { agency: Agency; o
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Sessão expirada.");
-      const isReceivedBase = form.interaction_result.trim().toLocaleLowerCase("pt-BR") === "base recebida";
+      const isReceivedBase = form.attach_as_client_base
+        || form.activity_type === "client_base_received"
+        || form.interaction_result.trim().toLocaleLowerCase("pt-BR") === "base recebida";
+      if (form.attach_as_client_base && !file) {
+        setSaving(false);
+        return toast.error("Selecione o arquivo da base de clientes para anexar.");
+      }
       let attachmentUrl: string | null = null;
       if (file) {
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -88,7 +96,7 @@ export function NewAgencyActivityDialog({ agency, onSaved }: { agency: Agency; o
       toast.success("Atividade registrada na timeline.");
       setOpen(false);
       setFile(null);
-      setForm((current) => ({ ...current, activity_type_detail: "", summary: "", interaction_result: "", next_steps: "", next_step_date: "", status_changed: false, c_level_support_needed: false }));
+      setForm((current) => ({ ...current, activity_type_detail: "", summary: "", interaction_result: "", next_steps: "", next_step_date: "", status_changed: false, c_level_support_needed: false, attach_as_client_base: false }));
       onSaved();
     } catch (error: any) {
       toast.error(error?.message ?? "Não foi possível registrar a atividade.");
@@ -119,7 +127,19 @@ export function NewAgencyActivityDialog({ agency, onSaved }: { agency: Agency; o
             {form.status_changed && <Field label="Nova etapa"><Select value={form.new_status} onValueChange={(value) => set("new_status", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{NEGOTIATION_STATUSES.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select></Field>}
           </div>
           <div className="flex items-center gap-3"><Switch checked={form.c_level_support_needed} onCheckedChange={(value) => set("c_level_support_needed", value)} /><Label className="font-normal">Precisa de apoio C-Level</Label></div>
-          <Field label="Anexo / base de clientes"><Input type="file" onChange={(event) => setFile(event.target.files?.[0] ?? null)} /></Field>
+          <div className="md:col-span-2 rounded-lg border border-dashed border-primary/40 bg-primary/5 p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="space-y-0.5">
+                <Label className="font-medium">Anexar base de clientes manualmente</Label>
+                <p className="text-xs text-muted-foreground">Marque para enviar a base recebida da imobiliária direto pelo CRM. O arquivo é registrado em Arquivos da imobiliária para processamento.</p>
+              </div>
+              <Switch checked={form.attach_as_client_base} onCheckedChange={(value) => set("attach_as_client_base", value)} />
+            </div>
+            <Field label={form.attach_as_client_base ? "Arquivo da base de clientes *" : "Anexo da atividade"}>
+              <Input type="file" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
+            </Field>
+          </div>
+
         </div>
         <DialogFooter><Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button><Button onClick={submit} disabled={saving}>{saving ? "Salvando…" : "Registrar atividade"}</Button></DialogFooter>
       </DialogContent>
