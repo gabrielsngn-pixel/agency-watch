@@ -41,7 +41,13 @@ export function NewAgencyActivityDialog({ agency, onSaved }: { agency: Agency; o
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Sessão expirada.");
-      const isReceivedBase = form.interaction_result.trim().toLocaleLowerCase("pt-BR") === "base recebida";
+      const isReceivedBase = form.attach_as_client_base
+        || form.activity_type === "client_base_received"
+        || form.interaction_result.trim().toLocaleLowerCase("pt-BR") === "base recebida";
+      if (form.attach_as_client_base && !file) {
+        setSaving(false);
+        return toast.error("Selecione o arquivo da base de clientes para anexar.");
+      }
       let attachmentUrl: string | null = null;
       if (file) {
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
