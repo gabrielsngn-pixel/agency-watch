@@ -22,8 +22,9 @@ export const Route = createFileRoute("/registro")({
   component: RegistroPage,
 });
 
-type AgencyOption = { id: string; name: string; city: string; state: string | null };
+type AgencyOption = { id: string; name: string; city: string; state: string | null; negotiation_status?: string | null };
 type StageOption = { stage_key: string; label: string; color: string };
+
 
 const CONSULTANT_KEY = "registro:consultant_email";
 
