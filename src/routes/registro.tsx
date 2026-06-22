@@ -405,6 +405,9 @@ function NewAgencyForm({ email, disabled, stages, consultantName }: { email: str
           {attachBase && (
             <Input type="file" accept=".xlsx,.csv,.pdf,.jpg,.jpeg,.png" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
           )}
+          {disabled && (
+            <p className="text-xs text-amber-600">Preencha seu e-mail (e nome completo, se for novo) em "Quem está registrando?" no topo da página para habilitar o envio.</p>
+          )}
           <Button type="submit" disabled={disabled || loading} className="w-full">{loading ? "Salvando..." : "Cadastrar imobiliária"}</Button>
         </form>
       </CardContent>
