@@ -22,8 +22,9 @@ export const Route = createFileRoute("/registro")({
   component: RegistroPage,
 });
 
-type AgencyOption = { id: string; name: string; city: string; state: string | null };
+type AgencyOption = { id: string; name: string; city: string; state: string | null; negotiation_status?: string | null };
 type StageOption = { stage_key: string; label: string; color: string };
+
 
 const CONSULTANT_KEY = "registro:consultant_email";
 
@@ -135,26 +136,23 @@ function RegistroPage() {
         </Card>
 
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="grid grid-cols-2 sm:grid-cols-4 h-auto">
+          <TabsList className="grid grid-cols-3 h-auto">
             <TabsTrigger value="attach_base" className="text-xs sm:text-sm">Anexar base</TabsTrigger>
             <TabsTrigger value="new_agency" className="text-xs sm:text-sm">Nova imobiliária</TabsTrigger>
             <TabsTrigger value="fup" className="text-xs sm:text-sm">Atividade / FUP</TabsTrigger>
-            <TabsTrigger value="kanban_move" className="text-xs sm:text-sm">Mover etapa</TabsTrigger>
           </TabsList>
 
           <TabsContent value="attach_base">
-            <AttachBaseForm email={email} disabled={!canSubmit} consultantName={isNewConsultant ? newName : undefined} />
+            <AttachBaseForm email={email} disabled={!canSubmit} consultantName={isNewConsultant ? newName : undefined} onGoNewAgency={() => setTab("new_agency")} />
           </TabsContent>
           <TabsContent value="new_agency">
             <NewAgencyForm email={email} disabled={!canSubmit} stages={stages} consultantName={isNewConsultant ? newName : undefined} />
           </TabsContent>
           <TabsContent value="fup">
-            <FupForm email={email} disabled={!canSubmit} consultantName={isNewConsultant ? newName : undefined} />
-          </TabsContent>
-          <TabsContent value="kanban_move">
-            <KanbanMoveForm email={email} disabled={!canSubmit} stages={stages} consultantName={isNewConsultant ? newName : undefined} />
+            <FupForm email={email} disabled={!canSubmit} stages={stages} consultantName={isNewConsultant ? newName : undefined} onGoNewAgency={() => setTab("new_agency")} />
           </TabsContent>
         </Tabs>
+
       </div>
     </div>
   );
@@ -163,53 +161,67 @@ function RegistroPage() {
 
 // --- Shared agency autocomplete ---------------------------------------------
 
-function AgencyPicker({ value, onChange }: { value: AgencyOption | null; onChange: (a: AgencyOption | null) => void }) {
+function AgencyPicker({ value, onChange, onNotFound }: { value: AgencyOption | null; onChange: (a: AgencyOption | null) => void; onNotFound?: () => void }) {
   const [query, setQuery] = useState(value?.name ?? "");
   const [options, setOptions] = useState<AgencyOption[]>([]);
   const [open, setOpen] = useState(false);
+  const [searched, setSearched] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => { setQuery(value?.name ?? ""); }, [value]);
 
   useEffect(() => {
     if (timer.current) clearTimeout(timer.current);
-    if (query.trim().length < 2) { setOptions([]); return; }
+    if (query.trim().length < 2) { setOptions([]); setSearched(false); return; }
     timer.current = setTimeout(async () => {
       try {
         const r = await fetch(`/api/public/registro/lookup?type=agencies&q=${encodeURIComponent(query.trim())}`);
         const d = await r.json();
-        if (d.ok) setOptions(d.items);
+        if (d.ok) { setOptions(d.items); setSearched(true); }
       } catch {}
     }, 250);
   }, [query]);
 
+  const showNotFound = !value && searched && options.length === 0 && query.trim().length >= 2;
+
   return (
-    <div className="relative">
-      <Input
-        value={query}
-        onChange={(e) => { setQuery(e.target.value); onChange(null); setOpen(true); }}
-        onFocus={() => setOpen(true)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
-        placeholder="Digite o nome da imobiliária"
-      />
-      {open && options.length > 0 && (
-        <div className="absolute z-10 mt-1 w-full rounded-md border bg-popover shadow-md max-h-64 overflow-auto">
-          {options.map((opt) => (
-            <button
-              type="button"
-              key={opt.id}
-              className="w-full text-left px-3 py-2 text-sm hover:bg-accent"
-              onMouseDown={(e) => { e.preventDefault(); onChange(opt); setQuery(opt.name); setOpen(false); }}
-            >
-              <div className="font-medium">{opt.name}</div>
-              <div className="text-xs text-muted-foreground">{opt.city}{opt.state ? ` / ${opt.state}` : ""}</div>
-            </button>
-          ))}
-        </div>
+    <div className="space-y-1">
+      <div className="relative">
+        <Input
+          value={query}
+          onChange={(e) => { setQuery(e.target.value); onChange(null); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          placeholder="Digite o nome da imobiliária"
+        />
+        {open && options.length > 0 && (
+          <div className="absolute z-10 mt-1 w-full rounded-md border bg-popover shadow-md max-h-64 overflow-auto">
+            {options.map((opt) => (
+              <button
+                type="button"
+                key={opt.id}
+                className="w-full text-left px-3 py-2 text-sm hover:bg-accent"
+                onMouseDown={(e) => { e.preventDefault(); onChange(opt); setQuery(opt.name); setOpen(false); }}
+              >
+                <div className="font-medium">{opt.name}</div>
+                <div className="text-xs text-muted-foreground">{opt.city}{opt.state ? ` / ${opt.state}` : ""}</div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      {showNotFound && onNotFound && (
+        <p className="text-xs text-muted-foreground">
+          Não encontrou a imobiliária?{" "}
+          <button type="button" onClick={onNotFound} className="text-primary underline underline-offset-2 hover:opacity-80">
+            Cadastre aqui
+          </button>
+        </p>
       )}
     </div>
   );
 }
+
 
 // --- Helpers ----------------------------------------------------------------
 
@@ -234,7 +246,7 @@ function SuccessPanel({ message, onReset }: { message: string; onReset: () => vo
 
 // --- 1) Anexar base ---------------------------------------------------------
 
-function AttachBaseForm({ email, disabled, consultantName }: { email: string; disabled: boolean; consultantName?: string }) {
+function AttachBaseForm({ email, disabled, consultantName, onGoNewAgency }: { email: string; disabled: boolean; consultantName?: string; onGoNewAgency?: () => void }) {
   const [agency, setAgency] = useState<AgencyOption | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [baseOrigin, setBaseOrigin] = useState("");
@@ -276,7 +288,8 @@ function AttachBaseForm({ email, disabled, consultantName }: { email: string; di
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label>Imobiliária *</Label>
-            <AgencyPicker value={agency} onChange={setAgency} />
+            <AgencyPicker value={agency} onChange={setAgency} onNotFound={onGoNewAgency} />
+
           </div>
           <div className="space-y-2">
             <Label htmlFor="file">Arquivo da base * (XLSX, CSV, PDF até 20MB)</Label>
@@ -401,7 +414,7 @@ function NewAgencyForm({ email, disabled, stages, consultantName }: { email: str
 
 // --- 3) FUP -----------------------------------------------------------------
 
-function FupForm({ email, disabled, consultantName }: { email: string; disabled: boolean; consultantName?: string }) {
+function FupForm({ email, disabled, stages, consultantName, onGoNewAgency }: { email: string; disabled: boolean; stages: StageOption[]; consultantName?: string; onGoNewAgency?: () => void }) {
   const [agency, setAgency] = useState<AgencyOption | null>(null);
   const [activityType, setActivityType] = useState<string>("call");
   const [activityTypeDetail, setActivityTypeDetail] = useState("");
@@ -410,10 +423,26 @@ function FupForm({ email, disabled, consultantName }: { email: string; disabled:
   const [nextSteps, setNextSteps] = useState("");
   const [nextStepDate, setNextStepDate] = useState("");
   const [cLevel, setCLevel] = useState(false);
+  const [kanbanStage, setKanbanStage] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const reset = () => { setAgency(null); setActivityType("call"); setActivityTypeDetail(""); setSummary(""); setInteractionResult(""); setNextSteps(""); setNextStepDate(""); setCLevel(false); setSuccess(null); };
+  // Sincroniza etapa kanban com a etapa atual da imobiliária selecionada.
+  useEffect(() => {
+    setKanbanStage(agency?.negotiation_status ?? "");
+  }, [agency]);
+
+  const currentStageLabel = useMemo(() => {
+    if (!agency?.negotiation_status) return null;
+    const s = stages.find((x) => x.stage_key === agency.negotiation_status);
+    return s?.label ?? agency.negotiation_status;
+  }, [agency, stages]);
+
+  const reset = () => {
+    setAgency(null); setActivityType("call"); setActivityTypeDetail(""); setSummary("");
+    setInteractionResult(""); setNextSteps(""); setNextStepDate(""); setCLevel(false);
+    setKanbanStage(""); setSuccess(null);
+  };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -436,7 +465,20 @@ function FupForm({ email, disabled, consultantName }: { email: string; disabled:
         c_level_support_needed: cLevel,
       });
 
-      setSuccess(`Atividade registrada em ${agency.name}.`);
+      let stageMessage = "";
+      if (kanbanStage && kanbanStage !== agency.negotiation_status) {
+        await submit({
+          consultant_email: email.trim().toLowerCase(),
+          consultant_name: consultantName,
+          flow: "kanban_move",
+          agency_id: agency.id,
+          requested_status: kanbanStage,
+          summary: `Mudança solicitada junto à atividade: ${summary}`.slice(0, 4000),
+        });
+        stageMessage = " Mudança de etapa enviada para aprovação.";
+      }
+
+      setSuccess(`Atividade registrada em ${agency.name}.${stageMessage}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao salvar");
     } finally { setLoading(false); }
@@ -451,7 +493,12 @@ function FupForm({ email, disabled, consultantName }: { email: string; disabled:
       <CardHeader><CardTitle className="text-base">Registrar atividade / FUP</CardTitle></CardHeader>
       <CardContent>
         <form onSubmit={onSubmit} className="space-y-4">
-          <div className="space-y-2"><Label>Imobiliária *</Label><AgencyPicker value={agency} onChange={setAgency} /></div>
+          <div className="space-y-2"><Label>Imobiliária *</Label><AgencyPicker value={agency} onChange={setAgency} onNotFound={onGoNewAgency} /></div>
+          {agency && (
+            <div className="rounded-md border bg-muted/40 p-3 text-xs">
+              Etapa atual: <strong>{currentStageLabel ?? "Não definida"}</strong>
+            </div>
+          )}
           <div className="space-y-2">
             <Label>Tipo de atividade *</Label>
             <Select value={activityType} onValueChange={setActivityType}>
@@ -468,6 +515,16 @@ function FupForm({ email, disabled, consultantName }: { email: string; disabled:
             <div className="space-y-2"><Label>Próximo passo</Label><Input value={nextSteps} onChange={(e) => setNextSteps(e.target.value)} /></div>
             <div className="space-y-2"><Label>Data do próximo passo</Label><Input type="date" value={nextStepDate} onChange={(e) => setNextStepDate(e.target.value)} /></div>
           </div>
+          <div className="space-y-2">
+            <Label>Etapa Kanban</Label>
+            <Select value={kanbanStage} onValueChange={setKanbanStage} disabled={!agency}>
+              <SelectTrigger><SelectValue placeholder={agency ? "Selecione a etapa" : "Selecione uma imobiliária"} /></SelectTrigger>
+              <SelectContent>{stages.map((s) => <SelectItem key={s.stage_key} value={s.stage_key}>{s.label}</SelectItem>)}</SelectContent>
+            </Select>
+            {agency && kanbanStage && kanbanStage !== agency.negotiation_status && (
+              <p className="text-xs text-amber-600">Mudança de etapa será enviada para aprovação no CRM.</p>
+            )}
+          </div>
           <div className="flex items-center justify-between rounded-md border p-3">
             <Label>Precisa de apoio C-Level?</Label>
             <Switch checked={cLevel} onCheckedChange={setCLevel} />
@@ -479,63 +536,3 @@ function FupForm({ email, disabled, consultantName }: { email: string; disabled:
   );
 }
 
-// --- 4) Mover etapa ---------------------------------------------------------
-
-function KanbanMoveForm({ email, disabled, stages, consultantName }: { email: string; disabled: boolean; stages: StageOption[]; consultantName?: string }) {
-  const [agency, setAgency] = useState<AgencyOption | null>(null);
-  const [requestedStatus, setRequestedStatus] = useState<string>("");
-  const [summary, setSummary] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState<string | null>(null);
-
-  const reset = () => { setAgency(null); setRequestedStatus(""); setSummary(""); setSuccess(null); };
-
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!agency) return toast.error("Selecione a imobiliária.");
-    if (!requestedStatus) return toast.error("Escolha a etapa de destino.");
-    setLoading(true);
-    try {
-      await submit({
-        consultant_email: email.trim().toLowerCase(),
-        consultant_name: consultantName,
-        flow: "kanban_move",
-        agency_id: agency.id,
-        requested_status: requestedStatus,
-        summary: summary || undefined,
-      });
-
-      setSuccess(`Solicitação enviada. Um admin irá aprovar a mudança no CRM.`);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao enviar");
-    } finally { setLoading(false); }
-  };
-
-  if (success) return <Card className="mt-4"><CardContent className="pt-6"><SuccessPanel message={success} onReset={reset} /></CardContent></Card>;
-
-  return (
-    <Card className="mt-4">
-      <CardHeader><CardTitle className="text-base">Solicitar movimentação no Kanban</CardTitle></CardHeader>
-      <CardContent>
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div className="space-y-2"><Label>Imobiliária *</Label><AgencyPicker value={agency} onChange={setAgency} /></div>
-          <div className="space-y-2">
-            <Label>Etapa de destino *</Label>
-            <Select value={requestedStatus} onValueChange={setRequestedStatus}>
-              <SelectTrigger><SelectValue placeholder="Selecione a nova etapa" /></SelectTrigger>
-              <SelectContent>{stages.map((s) => <SelectItem key={s.stage_key} value={s.stage_key}>{s.label}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Justificativa</Label>
-            <Textarea rows={3} value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="Por que a imobiliária deve mudar de etapa?" />
-          </div>
-          <p className="text-xs text-muted-foreground">
-            A mudança não é aplicada automaticamente — fica pendente de aprovação no CRM.
-          </p>
-          <Button type="submit" disabled={disabled || loading} className="w-full">{loading ? "Enviando..." : "Solicitar mudança"}</Button>
-        </form>
-      </CardContent>
-    </Card>
-  );
-}

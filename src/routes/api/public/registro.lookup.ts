@@ -15,7 +15,7 @@ export const Route = createFileRoute("/api/public/registro/lookup")({
         if (type === "agencies") {
           let query = supabaseAdmin
             .from("real_estate_agencies")
-            .select("id, name, city, state")
+            .select("id, name, city, state, negotiation_status")
             .order("name", { ascending: true })
             .limit(20);
           if (q.length >= 2) query = query.ilike("name", `%${q}%`);
@@ -25,6 +25,7 @@ export const Route = createFileRoute("/api/public/registro/lookup")({
             headers: { "cache-control": "no-store" },
           });
         }
+
 
         if (type === "stages") {
           const { data, error } = await supabaseAdmin
