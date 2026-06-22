@@ -234,7 +234,7 @@ function SuccessPanel({ message, onReset }: { message: string; onReset: () => vo
 
 // --- 1) Anexar base ---------------------------------------------------------
 
-function AttachBaseForm({ email, disabled }: { email: string; disabled: boolean }) {
+function AttachBaseForm({ email, disabled, consultantName }: { email: string; disabled: boolean; consultantName?: string }) {
   const [agency, setAgency] = useState<AgencyOption | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [baseOrigin, setBaseOrigin] = useState("");
@@ -252,11 +252,13 @@ function AttachBaseForm({ email, disabled }: { email: string; disabled: boolean 
     try {
       await submit({
         consultant_email: email.trim().toLowerCase(),
+        consultant_name: consultantName,
         flow: "attach_base",
         agency_id: agency.id,
         base_origin: baseOrigin || undefined,
         notes: notes || undefined,
       }, file);
+
       setSuccess(`Base de ${agency.name} enviada com sucesso.`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao enviar");
@@ -299,7 +301,7 @@ function AttachBaseForm({ email, disabled }: { email: string; disabled: boolean 
 
 // --- 2) Nova imobiliária ----------------------------------------------------
 
-function NewAgencyForm({ email, disabled, stages }: { email: string; disabled: boolean; stages: StageOption[] }) {
+function NewAgencyForm({ email, disabled, stages, consultantName }: { email: string; disabled: boolean; stages: StageOption[]; consultantName?: string }) {
   const [form, setForm] = useState({
     agency_name: "", city: "", state: "",
     main_contact: "", contact_role: "", contact_phone: "", contact_email: "",
@@ -326,9 +328,11 @@ function NewAgencyForm({ email, disabled, stages }: { email: string; disabled: b
     try {
       await submit({
         consultant_email: email.trim().toLowerCase(),
+        consultant_name: consultantName,
         flow: "new_agency",
         ...form,
       }, attachBase ? file : null);
+
       setSuccess(`Imobiliária ${form.agency_name} cadastrada.`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao salvar");
@@ -397,7 +401,7 @@ function NewAgencyForm({ email, disabled, stages }: { email: string; disabled: b
 
 // --- 3) FUP -----------------------------------------------------------------
 
-function FupForm({ email, disabled }: { email: string; disabled: boolean }) {
+function FupForm({ email, disabled, consultantName }: { email: string; disabled: boolean; consultantName?: string }) {
   const [agency, setAgency] = useState<AgencyOption | null>(null);
   const [activityType, setActivityType] = useState<string>("call");
   const [activityTypeDetail, setActivityTypeDetail] = useState("");
@@ -420,6 +424,7 @@ function FupForm({ email, disabled }: { email: string; disabled: boolean }) {
     try {
       await submit({
         consultant_email: email.trim().toLowerCase(),
+        consultant_name: consultantName,
         flow: "fup",
         agency_id: agency.id,
         activity_type: activityType,
@@ -430,6 +435,7 @@ function FupForm({ email, disabled }: { email: string; disabled: boolean }) {
         next_step_date: nextStepDate || undefined,
         c_level_support_needed: cLevel,
       });
+
       setSuccess(`Atividade registrada em ${agency.name}.`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao salvar");
@@ -475,7 +481,7 @@ function FupForm({ email, disabled }: { email: string; disabled: boolean }) {
 
 // --- 4) Mover etapa ---------------------------------------------------------
 
-function KanbanMoveForm({ email, disabled, stages }: { email: string; disabled: boolean; stages: StageOption[] }) {
+function KanbanMoveForm({ email, disabled, stages, consultantName }: { email: string; disabled: boolean; stages: StageOption[]; consultantName?: string }) {
   const [agency, setAgency] = useState<AgencyOption | null>(null);
   const [requestedStatus, setRequestedStatus] = useState<string>("");
   const [summary, setSummary] = useState("");
@@ -492,11 +498,13 @@ function KanbanMoveForm({ email, disabled, stages }: { email: string; disabled: 
     try {
       await submit({
         consultant_email: email.trim().toLowerCase(),
+        consultant_name: consultantName,
         flow: "kanban_move",
         agency_id: agency.id,
         requested_status: requestedStatus,
         summary: summary || undefined,
       });
+
       setSuccess(`Solicitação enviada. Um admin irá aprovar a mudança no CRM.`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao enviar");
