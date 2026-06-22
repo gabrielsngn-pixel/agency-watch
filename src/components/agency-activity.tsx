@@ -127,7 +127,19 @@ export function NewAgencyActivityDialog({ agency, onSaved }: { agency: Agency; o
             {form.status_changed && <Field label="Nova etapa"><Select value={form.new_status} onValueChange={(value) => set("new_status", value)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{NEGOTIATION_STATUSES.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select></Field>}
           </div>
           <div className="flex items-center gap-3"><Switch checked={form.c_level_support_needed} onCheckedChange={(value) => set("c_level_support_needed", value)} /><Label className="font-normal">Precisa de apoio C-Level</Label></div>
-          <Field label="Anexo / base de clientes"><Input type="file" onChange={(event) => setFile(event.target.files?.[0] ?? null)} /></Field>
+          <div className="md:col-span-2 rounded-lg border border-dashed border-primary/40 bg-primary/5 p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="space-y-0.5">
+                <Label className="font-medium">Anexar base de clientes manualmente</Label>
+                <p className="text-xs text-muted-foreground">Marque para enviar a base recebida da imobiliária direto pelo CRM. O arquivo é registrado em Arquivos da imobiliária para processamento.</p>
+              </div>
+              <Switch checked={form.attach_as_client_base} onCheckedChange={(value) => set("attach_as_client_base", value)} />
+            </div>
+            <Field label={form.attach_as_client_base ? "Arquivo da base de clientes *" : "Anexo da atividade"}>
+              <Input type="file" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
+            </Field>
+          </div>
+
         </div>
         <DialogFooter><Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button><Button onClick={submit} disabled={saving}>{saving ? "Salvando…" : "Registrar atividade"}</Button></DialogFooter>
       </DialogContent>
