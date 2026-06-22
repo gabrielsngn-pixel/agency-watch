@@ -414,7 +414,7 @@ function NewAgencyForm({ email, disabled, stages, consultantName }: { email: str
 
 // --- 3) FUP -----------------------------------------------------------------
 
-function FupForm({ email, disabled, consultantName }: { email: string; disabled: boolean; consultantName?: string }) {
+function FupForm({ email, disabled, stages, consultantName, onGoNewAgency }: { email: string; disabled: boolean; stages: StageOption[]; consultantName?: string; onGoNewAgency?: () => void }) {
   const [agency, setAgency] = useState<AgencyOption | null>(null);
   const [activityType, setActivityType] = useState<string>("call");
   const [activityTypeDetail, setActivityTypeDetail] = useState("");
@@ -423,10 +423,26 @@ function FupForm({ email, disabled, consultantName }: { email: string; disabled:
   const [nextSteps, setNextSteps] = useState("");
   const [nextStepDate, setNextStepDate] = useState("");
   const [cLevel, setCLevel] = useState(false);
+  const [kanbanStage, setKanbanStage] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const reset = () => { setAgency(null); setActivityType("call"); setActivityTypeDetail(""); setSummary(""); setInteractionResult(""); setNextSteps(""); setNextStepDate(""); setCLevel(false); setSuccess(null); };
+  // Sincroniza etapa kanban com a etapa atual da imobiliária selecionada.
+  useEffect(() => {
+    setKanbanStage(agency?.negotiation_status ?? "");
+  }, [agency]);
+
+  const currentStageLabel = useMemo(() => {
+    if (!agency?.negotiation_status) return null;
+    const s = stages.find((x) => x.stage_key === agency.negotiation_status);
+    return s?.label ?? agency.negotiation_status;
+  }, [agency, stages]);
+
+  const reset = () => {
+    setAgency(null); setActivityType("call"); setActivityTypeDetail(""); setSummary("");
+    setInteractionResult(""); setNextSteps(""); setNextStepDate(""); setCLevel(false);
+    setKanbanStage(""); setSuccess(null);
+  };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -449,7 +465,20 @@ function FupForm({ email, disabled, consultantName }: { email: string; disabled:
         c_level_support_needed: cLevel,
       });
 
-      setSuccess(`Atividade registrada em ${agency.name}.`);
+      let stageMessage = "";
+      if (kanbanStage && kanbanStage !== agency.negotiation_status) {
+        await submit({
+          consultant_email: email.trim().toLowerCase(),
+          consultant_name: consultantName,
+          flow: "kanban_move",
+          agency_id: agency.id,
+          requested_status: kanbanStage,
+          summary: `Mudança solicitada junto à atividade: ${summary}`.slice(0, 4000),
+        });
+        stageMessage = " Mudança de etapa enviada para aprovação.";
+      }
+
+      setSuccess(`Atividade registrada em ${agency.name}.${stageMessage}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao salvar");
     } finally { setLoading(false); }
@@ -464,7 +493,12 @@ function FupForm({ email, disabled, consultantName }: { email: string; disabled:
       <CardHeader><CardTitle className="text-base">Registrar atividade / FUP</CardTitle></CardHeader>
       <CardContent>
         <form onSubmit={onSubmit} className="space-y-4">
-          <div className="space-y-2"><Label>Imobiliária *</Label><AgencyPicker value={agency} onChange={setAgency} /></div>
+          <div className="space-y-2"><Label>Imobiliária *</Label><AgencyPicker value={agency} onChange={setAgency} onNotFound={onGoNewAgency} /></div>
+          {agency && (
+            <div className="rounded-md border bg-muted/40 p-3 text-xs">
+              Etapa atual: <strong>{currentStageLabel ?? "Não definida"}</strong>
+            </div>
+          )}
           <div className="space-y-2">
             <Label>Tipo de atividade *</Label>
             <Select value={activityType} onValueChange={setActivityType}>
@@ -481,6 +515,16 @@ function FupForm({ email, disabled, consultantName }: { email: string; disabled:
             <div className="space-y-2"><Label>Próximo passo</Label><Input value={nextSteps} onChange={(e) => setNextSteps(e.target.value)} /></div>
             <div className="space-y-2"><Label>Data do próximo passo</Label><Input type="date" value={nextStepDate} onChange={(e) => setNextStepDate(e.target.value)} /></div>
           </div>
+          <div className="space-y-2">
+            <Label>Etapa Kanban</Label>
+            <Select value={kanbanStage} onValueChange={setKanbanStage} disabled={!agency}>
+              <SelectTrigger><SelectValue placeholder={agency ? "Selecione a etapa" : "Selecione uma imobiliária"} /></SelectTrigger>
+              <SelectContent>{stages.map((s) => <SelectItem key={s.stage_key} value={s.stage_key}>{s.label}</SelectItem>)}</SelectContent>
+            </Select>
+            {agency && kanbanStage && kanbanStage !== agency.negotiation_status && (
+              <p className="text-xs text-amber-600">Mudança de etapa será enviada para aprovação no CRM.</p>
+            )}
+          </div>
           <div className="flex items-center justify-between rounded-md border p-3">
             <Label>Precisa de apoio C-Level?</Label>
             <Switch checked={cLevel} onCheckedChange={setCLevel} />
@@ -492,63 +536,3 @@ function FupForm({ email, disabled, consultantName }: { email: string; disabled:
   );
 }
 
-// --- 4) Mover etapa ---------------------------------------------------------
-
-function KanbanMoveForm({ email, disabled, stages, consultantName }: { email: string; disabled: boolean; stages: StageOption[]; consultantName?: string }) {
-  const [agency, setAgency] = useState<AgencyOption | null>(null);
-  const [requestedStatus, setRequestedStatus] = useState<string>("");
-  const [summary, setSummary] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState<string | null>(null);
-
-  const reset = () => { setAgency(null); setRequestedStatus(""); setSummary(""); setSuccess(null); };
-
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!agency) return toast.error("Selecione a imobiliária.");
-    if (!requestedStatus) return toast.error("Escolha a etapa de destino.");
-    setLoading(true);
-    try {
-      await submit({
-        consultant_email: email.trim().toLowerCase(),
-        consultant_name: consultantName,
-        flow: "kanban_move",
-        agency_id: agency.id,
-        requested_status: requestedStatus,
-        summary: summary || undefined,
-      });
-
-      setSuccess(`Solicitação enviada. Um admin irá aprovar a mudança no CRM.`);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao enviar");
-    } finally { setLoading(false); }
-  };
-
-  if (success) return <Card className="mt-4"><CardContent className="pt-6"><SuccessPanel message={success} onReset={reset} /></CardContent></Card>;
-
-  return (
-    <Card className="mt-4">
-      <CardHeader><CardTitle className="text-base">Solicitar movimentação no Kanban</CardTitle></CardHeader>
-      <CardContent>
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div className="space-y-2"><Label>Imobiliária *</Label><AgencyPicker value={agency} onChange={setAgency} /></div>
-          <div className="space-y-2">
-            <Label>Etapa de destino *</Label>
-            <Select value={requestedStatus} onValueChange={setRequestedStatus}>
-              <SelectTrigger><SelectValue placeholder="Selecione a nova etapa" /></SelectTrigger>
-              <SelectContent>{stages.map((s) => <SelectItem key={s.stage_key} value={s.stage_key}>{s.label}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Justificativa</Label>
-            <Textarea rows={3} value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="Por que a imobiliária deve mudar de etapa?" />
-          </div>
-          <p className="text-xs text-muted-foreground">
-            A mudança não é aplicada automaticamente — fica pendente de aprovação no CRM.
-          </p>
-          <Button type="submit" disabled={disabled || loading} className="w-full">{loading ? "Enviando..." : "Solicitar mudança"}</Button>
-        </form>
-      </CardContent>
-    </Card>
-  );
-}
