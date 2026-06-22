@@ -49,93 +49,89 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --font-display: "Outfit", "Inter", system-ui, sans-serif;
   --font-sans: "Inter", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
-/* Dark-first mission-control palette: petroleum green + amber accent */
+/* Loft brand: light theme, orange #FF774A primary, deep green secondary */
 :root {
-  --radius: 0.875rem;
+  --radius: 0.75rem;
 
-  --background: oklch(0.16 0.018 180);
-  --foreground: oklch(0.96 0.01 180);
+  /* Surfaces — clean white / very light gray */
+  --background: oklch(0.99 0.003 60);
+  --foreground: oklch(0.22 0.04 165);
 
-  --card: oklch(0.21 0.022 185);
-  --card-foreground: oklch(0.96 0.01 180);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.04 165);
 
-  --popover: oklch(0.18 0.025 185);
-  --popover-foreground: oklch(0.96 0.01 180);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.04 165);
 
-  /* Petroleum / teal-green primary */
-  --primary: oklch(0.72 0.13 170);
-  --primary-foreground: oklch(0.14 0.02 180);
-  --primary-glow: oklch(0.78 0.16 165);
+  /* Loft orange primary (#FF774A ≈ oklch(0.72 0.18 38)) */
+  --primary: oklch(0.72 0.18 38);
+  --primary-foreground: oklch(1 0 0);
+  --primary-glow: oklch(0.78 0.17 42);
 
-  --secondary: oklch(0.24 0.025 185);
-  --secondary-foreground: oklch(0.94 0.01 180);
+  /* Deep "loft green" used in headings / Loft sub-brand */
+  --secondary: oklch(0.96 0.005 165);
+  --secondary-foreground: oklch(0.32 0.06 165);
 
-  --muted: oklch(0.23 0.022 188);
-  --muted-foreground: oklch(0.66 0.02 190);
+  --muted: oklch(0.965 0.005 70);
+  --muted-foreground: oklch(0.5 0.02 165);
 
-  --accent: oklch(0.28 0.05 175);
-  --accent-foreground: oklch(0.96 0.01 180);
+  --accent: oklch(0.95 0.04 40);
+  --accent-foreground: oklch(0.35 0.12 38);
 
-  /* Amber action color used for primary CTAs / highlights (Linear-like) */
-  --action: oklch(0.74 0.17 55);
-  --action-foreground: oklch(0.16 0.02 60);
-  --action-glow: oklch(0.78 0.19 50);
+  /* Action token kept for backward compat — same as primary */
+  --action: oklch(0.72 0.18 38);
+  --action-foreground: oklch(1 0 0);
+  --action-glow: oklch(0.78 0.17 42);
 
-  --destructive: oklch(0.66 0.21 25);
-  --destructive-foreground: oklch(0.98 0.005 0);
+  --destructive: oklch(0.62 0.22 25);
+  --destructive-foreground: oklch(1 0 0);
 
-  --success: oklch(0.74 0.15 160);
-  --success-foreground: oklch(0.14 0.02 180);
+  --success: oklch(0.62 0.14 160);
+  --success-foreground: oklch(1 0 0);
 
-  --warning: oklch(0.78 0.16 75);
-  --warning-foreground: oklch(0.16 0.02 60);
+  --warning: oklch(0.78 0.16 70);
+  --warning-foreground: oklch(0.25 0.05 60);
 
-  --info: oklch(0.72 0.13 230);
-  --info-foreground: oklch(0.14 0.02 230);
+  --info: oklch(0.62 0.13 235);
+  --info-foreground: oklch(1 0 0);
 
-  --border: oklch(1 0 0 / 8%);
-  --input: oklch(1 0 0 / 10%);
-  --ring: oklch(0.72 0.13 170 / 60%);
+  --border: oklch(0.9 0.01 60);
+  --input: oklch(0.93 0.008 60);
+  --ring: oklch(0.72 0.18 38 / 60%);
 
-  --chart-1: oklch(0.72 0.13 170);
-  --chart-2: oklch(0.74 0.17 55);
-  --chart-3: oklch(0.72 0.13 230);
-  --chart-4: oklch(0.7 0.16 320);
-  --chart-5: oklch(0.78 0.16 75);
+  --chart-1: oklch(0.72 0.18 38);   /* loft orange */
+  --chart-2: oklch(0.55 0.1 165);   /* loft green */
+  --chart-3: oklch(0.62 0.13 235);  /* blue */
+  --chart-4: oklch(0.7 0.16 320);   /* magenta */
+  --chart-5: oklch(0.78 0.16 70);   /* amber */
 
-  --sidebar: oklch(0.14 0.02 185);
-  --sidebar-foreground: oklch(0.82 0.015 180);
-  --sidebar-primary: oklch(0.72 0.13 170);
-  --sidebar-primary-foreground: oklch(0.14 0.02 180);
-  --sidebar-accent: oklch(0.22 0.03 185);
-  --sidebar-accent-foreground: oklch(0.96 0.01 180);
-  --sidebar-border: oklch(1 0 0 / 6%);
-  --sidebar-ring: oklch(0.72 0.13 170 / 60%);
+  --sidebar: oklch(0.985 0.003 60);
+  --sidebar-foreground: oklch(0.3 0.04 165);
+  --sidebar-primary: oklch(0.72 0.18 38);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.95 0.01 60);
+  --sidebar-accent-foreground: oklch(0.3 0.06 165);
+  --sidebar-border: oklch(0.9 0.01 60);
+  --sidebar-ring: oklch(0.72 0.18 38 / 60%);
 
-  /* Gradients & shadows */
+  /* Gradients & shadows — soft, light, Loft warmth */
   --gradient-app:
-    radial-gradient(1200px 700px at 8% -10%, oklch(0.28 0.08 175 / 0.55), transparent 60%),
-    radial-gradient(900px 600px at 95% 10%, oklch(0.22 0.05 200 / 0.45), transparent 65%),
-    radial-gradient(800px 600px at 50% 110%, oklch(0.24 0.07 165 / 0.35), transparent 70%),
-    linear-gradient(180deg, oklch(0.13 0.018 185) 0%, oklch(0.16 0.02 185) 100%);
-  --gradient-card: linear-gradient(160deg, oklch(0.23 0.025 185 / 0.85) 0%, oklch(0.19 0.02 185 / 0.7) 100%);
-  --gradient-action: linear-gradient(135deg, var(--action) 0%, var(--action-glow) 100%);
+    radial-gradient(900px 600px at 10% -10%, oklch(0.95 0.06 40 / 0.5), transparent 60%),
+    radial-gradient(700px 500px at 100% 0%, oklch(0.96 0.04 80 / 0.45), transparent 65%),
+    linear-gradient(180deg, oklch(0.995 0.003 60) 0%, oklch(0.98 0.005 60) 100%);
+  --gradient-card: linear-gradient(160deg, oklch(1 0 0) 0%, oklch(0.985 0.004 60) 100%);
+  --gradient-action: linear-gradient(135deg, var(--primary) 0%, var(--primary-glow) 100%);
   --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--primary-glow) 100%);
 
-  --shadow-glow-primary: 0 0 0 1px oklch(0.72 0.13 170 / 0.25), 0 8px 30px -10px oklch(0.72 0.13 170 / 0.35);
-  --shadow-glow-action: 0 0 0 1px oklch(0.74 0.17 55 / 0.3), 0 8px 30px -8px oklch(0.74 0.17 55 / 0.45);
-  --shadow-elevated: 0 1px 0 0 oklch(1 0 0 / 0.04) inset, 0 20px 50px -20px oklch(0 0 0 / 0.6);
-  --shadow-soft: 0 1px 0 0 oklch(1 0 0 / 0.04) inset, 0 8px 24px -12px oklch(0 0 0 / 0.5);
-}
-
-/* Force dark token resolution even without .dark wrapper */
-.dark {
-  color-scheme: dark;
+  --shadow-glow-primary: 0 0 0 1px oklch(0.72 0.18 38 / 0.18), 0 10px 30px -12px oklch(0.72 0.18 38 / 0.35);
+  --shadow-glow-action: 0 0 0 1px oklch(0.72 0.18 38 / 0.2), 0 10px 30px -10px oklch(0.72 0.18 38 / 0.4);
+  --shadow-elevated: 0 1px 2px 0 oklch(0 0 0 / 0.04), 0 20px 40px -22px oklch(0.3 0.05 165 / 0.18);
+  --shadow-soft: 0 1px 2px 0 oklch(0 0 0 / 0.03), 0 8px 24px -14px oklch(0.3 0.05 165 / 0.14);
 }
 
 @layer base {
@@ -160,18 +156,18 @@
 
   h1, h2, h3, h4, .font-display {
     font-family: var(--font-display);
-    letter-spacing: -0.01em;
+    letter-spacing: -0.015em;
+    color: oklch(0.32 0.06 165);
   }
 
   ::selection {
-    background: oklch(0.72 0.13 170 / 0.35);
+    background: oklch(0.72 0.18 38 / 0.25);
     color: var(--foreground);
   }
 
-  /* Subtle scrollbars */
   ::-webkit-scrollbar { width: 10px; height: 10px; }
-  ::-webkit-scrollbar-thumb { background: oklch(1 0 0 / 0.08); border-radius: 8px; }
-  ::-webkit-scrollbar-thumb:hover { background: oklch(1 0 0 / 0.14); }
+  ::-webkit-scrollbar-thumb { background: oklch(0.3 0.05 165 / 0.18); border-radius: 8px; }
+  ::-webkit-scrollbar-thumb:hover { background: oklch(0.3 0.05 165 / 0.3); }
   ::-webkit-scrollbar-track { background: transparent; }
 }
 
@@ -180,13 +176,12 @@
     background: var(--gradient-card);
     backdrop-filter: blur(14px) saturate(140%);
     -webkit-backdrop-filter: blur(14px) saturate(140%);
-    border: 1px solid oklch(1 0 0 / 0.06);
+    border: 1px solid oklch(0.3 0.05 165 / 0.08);
     box-shadow: var(--shadow-soft);
   }
   .surface-elevated {
     background: var(--gradient-card);
-    backdrop-filter: blur(20px) saturate(140%);
-    border: 1px solid oklch(1 0 0 / 0.07);
+    border: 1px solid oklch(0.3 0.05 165 / 0.08);
     box-shadow: var(--shadow-elevated);
   }
   .glow-primary { box-shadow: var(--shadow-glow-primary); }
@@ -199,8 +194,8 @@
   }
   .grid-bg {
     background-image:
-      linear-gradient(oklch(1 0 0 / 0.025) 1px, transparent 1px),
-      linear-gradient(90deg, oklch(1 0 0 / 0.025) 1px, transparent 1px);
+      linear-gradient(oklch(0.3 0.05 165 / 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, oklch(0.3 0.05 165 / 0.04) 1px, transparent 1px);
     background-size: 32px 32px;
   }
 }
