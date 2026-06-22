@@ -7,6 +7,7 @@ const activityKeys = AGENCY_ACTIVITY_TYPES.map(([k]) => k) as [string, ...string
 // One schema, four flow variants identified by `flow`.
 const baseSchema = z.object({
   consultant_email: z.string().email().max(320),
+  consultant_name: z.string().trim().max(120).optional(),
   flow: z.enum(["attach_base", "new_agency", "fup", "kanban_move"]),
   agency_id: z.string().uuid().optional(),
   agency_name: z.string().max(200).optional(),
@@ -30,6 +31,7 @@ const baseSchema = z.object({
   notes: z.string().max(5000).optional(),
   requested_status: z.enum(NEGOTIATION_STATUSES).optional(),
 });
+
 
 function safeFileName(value: string) {
   return value.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 180) || "base-recebida";
@@ -63,16 +65,41 @@ export const Route = createFileRoute("/api/public/registro/submit")({
         const input = parsed.data;
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-        // Resolve consultant (must exist & be active).
-        const { data: consultant } = await supabaseAdmin
+        // Resolve consultant — auto-create if e-mail não está cadastrado.
+        let { data: consultant } = await supabaseAdmin
           .from("consultants")
           .select("id, name, email, user_id")
           .ilike("email", input.consultant_email)
-          .eq("active", true)
           .maybeSingle();
+
         if (!consultant) {
-          return Response.json({ ok: false, error: "consultant_not_found" }, { status: 403 });
+          const fallbackName =
+            input.consultant_name?.trim() ||
+            input.consultant_email.split("@")[0].replace(/[._-]+/g, " ").trim() ||
+            input.consultant_email;
+          const { data: created, error: createConsultantError } = await supabaseAdmin
+            .from("consultants")
+            .insert({
+              name: fallbackName,
+              email: input.consultant_email,
+              active: true,
+            })
+            .select("id, name, email, user_id")
+            .single();
+          if (createConsultantError || !created) {
+            return Response.json(
+              { ok: false, error: "consultant_create_failed", detail: createConsultantError?.message },
+              { status: 500 },
+            );
+          }
+          consultant = created;
+        } else if (!consultant.name && input.consultant_name?.trim()) {
+          await supabaseAdmin
+            .from("consultants")
+            .update({ name: input.consultant_name.trim(), active: true })
+            .eq("id", consultant.id);
         }
+
 
         // Resolve / create agency.
         let agency: { id: string; name: string; negotiation_status: string; consultant_id: string | null } | null = null;
