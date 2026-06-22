@@ -288,7 +288,8 @@ function AttachBaseForm({ email, disabled, consultantName, onGoNewAgency }: { em
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label>Imobiliária *</Label>
-            <AgencyPicker value={agency} onChange={setAgency} />
+            <AgencyPicker value={agency} onChange={setAgency} onNotFound={onGoNewAgency} />
+
           </div>
           <div className="space-y-2">
             <Label htmlFor="file">Arquivo da base * (XLSX, CSV, PDF até 20MB)</Label>
