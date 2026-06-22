@@ -28,8 +28,10 @@ export function NewAgencyActivityDialog({ agency, onSaved }: { agency: Agency; o
     status_changed: false,
     new_status: agency.negotiation_status,
     c_level_support_needed: false,
+    attach_as_client_base: false,
   });
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm((current) => ({ ...current, [key]: value }));
+
 
   const submit = async () => {
     if (!form.summary.trim()) return toast.error("Descreva o resumo da atividade.");
