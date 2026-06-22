@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Logo } from "@/components/logo";
 import { AGENCY_ACTIVITY_TYPES, BR_STATES } from "@/lib/constants";
 
 export const Route = createFileRoute("/registro")({
@@ -87,12 +88,21 @@ function RegistroPage() {
     (consultantStatus === "new" && newName.trim().length >= 2);
 
   return (
-    <div className="min-h-screen bg-muted/30 py-6 px-4 sm:py-10">
-      <div className="mx-auto w-full max-w-2xl space-y-6">
+    <div className="min-h-screen">
+      <header className="border-b border-border/60 bg-card/70 backdrop-blur">
+        <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-4">
+          <div className="h-10 w-10"><Logo /></div>
+          <div className="flex flex-col leading-tight">
+            <span className="text-sm font-semibold tracking-tight text-foreground">Loft · Gestão de Carteira</span>
+            <span className="text-xs text-muted-foreground">Registro rápido de imobiliárias</span>
+          </div>
+        </div>
+      </header>
+      <div className="mx-auto w-full max-w-2xl space-y-6 px-4 py-8 sm:py-10">
         <header className="space-y-2">
-          <h1 className="text-2xl font-semibold sm:text-3xl">Registro rápido</h1>
+          <h1 className="text-3xl font-bold sm:text-4xl">Registro rápido</h1>
           <p className="text-sm text-muted-foreground">
-            Anexe bases, cadastre imobiliárias, registre FUP ou solicite movimentação no Kanban. Tudo cai direto no CRM.
+            Anexe bases, cadastre imobiliárias, registre FUP ou solicite movimentação no Kanban. Tudo cai direto no CRM da Loft.
           </p>
         </header>
 
