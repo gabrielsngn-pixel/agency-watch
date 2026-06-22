@@ -136,26 +136,23 @@ function RegistroPage() {
         </Card>
 
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="grid grid-cols-2 sm:grid-cols-4 h-auto">
+          <TabsList className="grid grid-cols-3 h-auto">
             <TabsTrigger value="attach_base" className="text-xs sm:text-sm">Anexar base</TabsTrigger>
             <TabsTrigger value="new_agency" className="text-xs sm:text-sm">Nova imobiliária</TabsTrigger>
             <TabsTrigger value="fup" className="text-xs sm:text-sm">Atividade / FUP</TabsTrigger>
-            <TabsTrigger value="kanban_move" className="text-xs sm:text-sm">Mover etapa</TabsTrigger>
           </TabsList>
 
           <TabsContent value="attach_base">
-            <AttachBaseForm email={email} disabled={!canSubmit} consultantName={isNewConsultant ? newName : undefined} />
+            <AttachBaseForm email={email} disabled={!canSubmit} consultantName={isNewConsultant ? newName : undefined} onGoNewAgency={() => setTab("new_agency")} />
           </TabsContent>
           <TabsContent value="new_agency">
             <NewAgencyForm email={email} disabled={!canSubmit} stages={stages} consultantName={isNewConsultant ? newName : undefined} />
           </TabsContent>
           <TabsContent value="fup">
-            <FupForm email={email} disabled={!canSubmit} consultantName={isNewConsultant ? newName : undefined} />
-          </TabsContent>
-          <TabsContent value="kanban_move">
-            <KanbanMoveForm email={email} disabled={!canSubmit} stages={stages} consultantName={isNewConsultant ? newName : undefined} />
+            <FupForm email={email} disabled={!canSubmit} stages={stages} consultantName={isNewConsultant ? newName : undefined} onGoNewAgency={() => setTab("new_agency")} />
           </TabsContent>
         </Tabs>
+
       </div>
     </div>
   );
