@@ -161,53 +161,67 @@ function RegistroPage() {
 
 // --- Shared agency autocomplete ---------------------------------------------
 
-function AgencyPicker({ value, onChange }: { value: AgencyOption | null; onChange: (a: AgencyOption | null) => void }) {
+function AgencyPicker({ value, onChange, onNotFound }: { value: AgencyOption | null; onChange: (a: AgencyOption | null) => void; onNotFound?: () => void }) {
   const [query, setQuery] = useState(value?.name ?? "");
   const [options, setOptions] = useState<AgencyOption[]>([]);
   const [open, setOpen] = useState(false);
+  const [searched, setSearched] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => { setQuery(value?.name ?? ""); }, [value]);
 
   useEffect(() => {
     if (timer.current) clearTimeout(timer.current);
-    if (query.trim().length < 2) { setOptions([]); return; }
+    if (query.trim().length < 2) { setOptions([]); setSearched(false); return; }
     timer.current = setTimeout(async () => {
       try {
         const r = await fetch(`/api/public/registro/lookup?type=agencies&q=${encodeURIComponent(query.trim())}`);
         const d = await r.json();
-        if (d.ok) setOptions(d.items);
+        if (d.ok) { setOptions(d.items); setSearched(true); }
       } catch {}
     }, 250);
   }, [query]);
 
+  const showNotFound = !value && searched && options.length === 0 && query.trim().length >= 2;
+
   return (
-    <div className="relative">
-      <Input
-        value={query}
-        onChange={(e) => { setQuery(e.target.value); onChange(null); setOpen(true); }}
-        onFocus={() => setOpen(true)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
-        placeholder="Digite o nome da imobiliária"
-      />
-      {open && options.length > 0 && (
-        <div className="absolute z-10 mt-1 w-full rounded-md border bg-popover shadow-md max-h-64 overflow-auto">
-          {options.map((opt) => (
-            <button
-              type="button"
-              key={opt.id}
-              className="w-full text-left px-3 py-2 text-sm hover:bg-accent"
-              onMouseDown={(e) => { e.preventDefault(); onChange(opt); setQuery(opt.name); setOpen(false); }}
-            >
-              <div className="font-medium">{opt.name}</div>
-              <div className="text-xs text-muted-foreground">{opt.city}{opt.state ? ` / ${opt.state}` : ""}</div>
-            </button>
-          ))}
-        </div>
+    <div className="space-y-1">
+      <div className="relative">
+        <Input
+          value={query}
+          onChange={(e) => { setQuery(e.target.value); onChange(null); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          placeholder="Digite o nome da imobiliária"
+        />
+        {open && options.length > 0 && (
+          <div className="absolute z-10 mt-1 w-full rounded-md border bg-popover shadow-md max-h-64 overflow-auto">
+            {options.map((opt) => (
+              <button
+                type="button"
+                key={opt.id}
+                className="w-full text-left px-3 py-2 text-sm hover:bg-accent"
+                onMouseDown={(e) => { e.preventDefault(); onChange(opt); setQuery(opt.name); setOpen(false); }}
+              >
+                <div className="font-medium">{opt.name}</div>
+                <div className="text-xs text-muted-foreground">{opt.city}{opt.state ? ` / ${opt.state}` : ""}</div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      {showNotFound && onNotFound && (
+        <p className="text-xs text-muted-foreground">
+          Não encontrou a imobiliária?{" "}
+          <button type="button" onClick={onNotFound} className="text-primary underline underline-offset-2 hover:opacity-80">
+            Cadastre aqui
+          </button>
+        </p>
       )}
     </div>
   );
 }
+
 
 // --- Helpers ----------------------------------------------------------------
 
