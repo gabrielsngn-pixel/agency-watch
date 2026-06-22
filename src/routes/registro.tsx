@@ -405,9 +405,9 @@ function FupForm({ email, disabled }: { email: string; disabled: boolean }) {
     } finally { setLoading(false); }
   };
 
-  if (success) return <Card className="mt-4"><CardContent className="pt-6"><SuccessPanel message={success} onReset={reset} /></CardContent></Card>;
-
   const types = useMemo(() => AGENCY_ACTIVITY_TYPES.filter(([k]) => k !== "client_base_received"), []);
+
+  if (success) return <Card className="mt-4"><CardContent className="pt-6"><SuccessPanel message={success} onReset={reset} /></CardContent></Card>;
 
   return (
     <Card className="mt-4">
