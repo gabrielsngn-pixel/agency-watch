@@ -96,7 +96,7 @@ export function NewAgencyActivityDialog({ agency, onSaved }: { agency: Agency; o
       toast.success("Atividade registrada na timeline.");
       setOpen(false);
       setFile(null);
-      setForm((current) => ({ ...current, activity_type_detail: "", summary: "", interaction_result: "", next_steps: "", next_step_date: "", status_changed: false, c_level_support_needed: false }));
+      setForm((current) => ({ ...current, activity_type_detail: "", summary: "", interaction_result: "", next_steps: "", next_step_date: "", status_changed: false, c_level_support_needed: false, attach_as_client_base: false }));
       onSaved();
     } catch (error: any) {
       toast.error(error?.message ?? "Não foi possível registrar a atividade.");
