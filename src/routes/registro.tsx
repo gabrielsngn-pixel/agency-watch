@@ -387,9 +387,21 @@ function NewAgencyForm({ email, disabled, stages, consultantName }: { email: str
               </Select>
             </div>
           </div>
-          <div className="space-y-2">
-            <Label>Cidade *</Label>
-            <Input value={form.city} onChange={(e) => set("city", e.target.value)} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Cidade *</Label>
+              <Input value={form.city} onChange={(e) => set("city", e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>CNPJ</Label>
+              <Input
+                value={form.cnpj}
+                onChange={(e) => set("cnpj", formatCnpjMask(e.target.value))}
+                placeholder="00.000.000/0000-00"
+                inputMode="numeric"
+                maxLength={18}
+              />
+            </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-2"><Label>Contato principal</Label><Input value={form.main_contact} onChange={(e) => set("main_contact", e.target.value)} /></div>
