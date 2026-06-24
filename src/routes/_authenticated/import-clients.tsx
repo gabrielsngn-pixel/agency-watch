@@ -98,7 +98,7 @@ function ImportClientsPage() {
       const v = std[req];
       if (v === undefined || v === null || v === "") errors.push(`${COLUMN_LABELS[req]} faltando`);
     }
-    // Documento: validação PF (CPF, 11) x PJ (CNPJ, 14) — schema "oneOf" da Credpronto.
+    // Documento: PF (CPF 11) x PJ (CNPJ 14).
     const docDigits = onlyDigits(std.documento);
     if (std.documento) {
       if (docDigits.length === 11) {
@@ -109,10 +109,25 @@ function ImportClientsPage() {
         errors.push("Documento deve ser CPF (11) ou CNPJ (14 dígitos)");
       }
     }
-    // Número do imóvel: Credpronto exige numérico.
+    // Número do imóvel: numérico.
     if (std.numero_imovel !== undefined && std.numero_imovel !== "") {
       if (!/^\d+$/.test(String(std.numero_imovel))) {
         errors.push("Número do imóvel deve ser numérico");
+      }
+    }
+    // Regras de tipo / subtipo de imóvel.
+    const tipo = canonicalTipo(std.tipo_imovel);
+    if (std.tipo_imovel && !tipo) {
+      errors.push("Tipo do imóvel deve ser Residencial ou Comercial");
+    }
+    if (tipo) {
+      const sub = canonicalSubtipo(std.subtipo_imovel);
+      if (!std.subtipo_imovel) {
+        // já capturado pelos required (quando aplicável)
+      } else if (tipo === "comercial" && sub !== "Casa") {
+        errors.push("Subtipo de imóvel comercial deve ser Casa");
+      } else if (tipo === "residencial" && !["Casa", "Apartamento", "Chácara"].includes(sub ?? "")) {
+        errors.push("Subtipo residencial deve ser Casa, Apartamento ou Chácara");
       }
     }
     return errors;
