@@ -52,6 +52,7 @@ function ImportClientsPage() {
   const [parsed, setParsed] = useState<ParsedTable | null>(null);
   const [mapping, setMapping] = useState<Record<string, ImportColumn | "">>({});
   const [rows, setRows] = useState<PreviewRow[]>([]);
+  const [duplicatesRemoved, setDuplicatesRemoved] = useState(0);
   const [agencyName, setAgencyName] = useState("");
   const [filename, setFilename] = useState("");
   const [busy, setBusy] = useState(false);
@@ -60,6 +61,7 @@ function ImportClientsPage() {
   const [selectedAgencyId, setSelectedAgencyId] = useState<string>("");
   const [agencies, setAgencies] = useState<{ id: string; name: string }[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+
 
   useEffect(() => {
     if (!allowed) return;
