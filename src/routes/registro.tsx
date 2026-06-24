@@ -341,6 +341,7 @@ function NewAgencyForm({ email, disabled, stages, consultantName }: { email: str
     agency_name: "", cnpj: "", city: "", state: "",
     main_contact: "", contact_role: "", contact_phone: "", contact_email: "",
     current_guarantor: "", perceived_potential: "",
+    deal_temperature: "medio",
     initial_kanban_status: "Pipeline de Prospecção",
     notes: "",
   });
@@ -351,9 +352,10 @@ function NewAgencyForm({ email, disabled, stages, consultantName }: { email: str
   const set = (k: keyof typeof form, v: string) => setForm((p) => ({ ...p, [k]: v }));
 
   const reset = () => {
-    setForm({ agency_name: "", cnpj: "", city: "", state: "", main_contact: "", contact_role: "", contact_phone: "", contact_email: "", current_guarantor: "", perceived_potential: "", initial_kanban_status: "Pipeline de Prospecção", notes: "" });
+    setForm({ agency_name: "", cnpj: "", city: "", state: "", main_contact: "", contact_role: "", contact_phone: "", contact_email: "", current_guarantor: "", perceived_potential: "", deal_temperature: "medio", initial_kanban_status: "Pipeline de Prospecção", notes: "" });
     setFile(null); setAttachBase(false); setSuccess(null);
   };
+
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -418,7 +420,31 @@ function NewAgencyForm({ email, disabled, stages, consultantName }: { email: str
             <div className="space-y-2"><Label>Telefone</Label><Input value={form.contact_phone} onChange={(e) => set("contact_phone", e.target.value)} /></div>
             <div className="space-y-2"><Label>E-mail</Label><Input type="email" value={form.contact_email} onChange={(e) => set("contact_email", e.target.value)} /></div>
             <div className="space-y-2"><Label>Garantidor atual</Label><Input value={form.current_guarantor} onChange={(e) => set("current_guarantor", e.target.value)} /></div>
-            <div className="space-y-2"><Label>Potencial percebido</Label><Input value={form.perceived_potential} onChange={(e) => set("perceived_potential", e.target.value)} /></div>
+            <div className="space-y-2"><Label>Potencial de clientes (contratos)</Label><Input type="number" min={0} inputMode="numeric" value={form.perceived_potential} onChange={(e) => set("perceived_potential", e.target.value.replace(/\D+/g, ""))} placeholder="Ex: 120" /></div>
+          </div>
+          <div className="space-y-2">
+            <Label>Termômetro da negociação *</Label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {[
+                { v: "frio", label: "❄️ Fria", cls: "border-sky-300 data-[on=true]:bg-sky-100 data-[on=true]:border-sky-500" },
+                { v: "medio", label: "🌤️ Média", cls: "border-amber-200 data-[on=true]:bg-amber-100 data-[on=true]:border-amber-500" },
+                { v: "quente", label: "🔥 Quente", cls: "border-orange-300 data-[on=true]:bg-orange-100 data-[on=true]:border-orange-500" },
+                { v: "urgente", label: "🚨 Urgente", cls: "border-red-300 data-[on=true]:bg-red-100 data-[on=true]:border-red-600" },
+              ].map((t) => (
+                <button
+                  key={t.v}
+                  type="button"
+                  data-on={form.deal_temperature === t.v}
+                  onClick={() => set("deal_temperature", t.v)}
+                  className={`rounded-md border px-3 py-2 text-sm font-medium transition ${t.cls}`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            {form.deal_temperature === "urgente" && (
+              <p className="text-xs text-red-600">Um alerta urgente será criado no CRM para esta imobiliária.</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label>Etapa inicial no Kanban</Label>
@@ -427,6 +453,7 @@ function NewAgencyForm({ email, disabled, stages, consultantName }: { email: str
               <SelectContent>{stages.map((s) => <SelectItem key={s.stage_key} value={s.stage_key}>{s.label}</SelectItem>)}</SelectContent>
             </Select>
           </div>
+
           <div className="space-y-2">
             <Label>Observações</Label>
             <Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} rows={3} />

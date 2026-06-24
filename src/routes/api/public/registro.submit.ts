@@ -20,6 +20,7 @@ const baseSchema = z.object({
   contact_email: z.string().email().max(320).optional().or(z.literal("")),
   current_guarantor: z.string().max(200).optional(),
   perceived_potential: z.string().max(100).optional(),
+  deal_temperature: z.enum(["frio", "medio", "quente", "urgente"]).optional(),
   initial_kanban_status: z.enum(NEGOTIATION_STATUSES).optional(),
   activity_type: z.enum(activityKeys).optional(),
   activity_type_detail: z.string().max(500).optional(),
@@ -138,6 +139,7 @@ export const Route = createFileRoute("/api/public/registro/submit")({
                 contact_email: input.contact_email?.trim() || null,
                 current_guarantor: input.current_guarantor?.trim() || null,
                 perceived_potential: input.perceived_potential?.trim() || null,
+                deal_temperature: input.deal_temperature ?? null,
                 negotiation_status: input.initial_kanban_status ?? undefined,
                 consultant_id: consultant.id,
                 created_by: consultant.user_id ?? null,
@@ -147,6 +149,21 @@ export const Route = createFileRoute("/api/public/registro/submit")({
               .single();
             if (createError) return Response.json({ ok: false, error: "agency_create_failed", detail: createError.message }, { status: 500 });
             agency = created;
+          }
+          if (agency && input.deal_temperature === "urgente") {
+            await supabaseAdmin.from("mission_control_alerts").insert({
+              alert_type: "urgent_agency_registration",
+              severity: "high",
+              title: `Imobiliária urgente: ${agency.name}`,
+              description: `Cadastro marcado como URGENTE por ${consultant.name} (${input.consultant_email}). Cidade: ${input.city}/${input.state?.toUpperCase()}.${input.notes ? ` Observações: ${input.notes}` : ""}`,
+              metadata: {
+                agency_id: agency.id,
+                agency_name: agency.name,
+                consultant_email: input.consultant_email,
+                source: "public_form",
+              },
+              created_by: consultant.user_id ?? null,
+            });
           }
         }
 
