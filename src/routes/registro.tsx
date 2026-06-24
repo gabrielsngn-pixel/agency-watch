@@ -349,6 +349,8 @@ function NewAgencyForm({ email, disabled, stages, consultantName }: { email: str
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.agency_name.trim() || !form.city.trim() || !form.state) return toast.error("Nome, cidade e UF são obrigatórios.");
+    const cnpjDigits = form.cnpj.replace(/\D+/g, "");
+    if (cnpjDigits && cnpjDigits.length !== 14) return toast.error("CNPJ deve ter 14 dígitos.");
     if (attachBase && !file) return toast.error("Anexe o arquivo da base.");
     setLoading(true);
     try {
