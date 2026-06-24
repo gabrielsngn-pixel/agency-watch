@@ -107,7 +107,7 @@ function DashboardPage() {
   const toItem = (a: any, hint?: string | null): DrilldownAgency => ({
     id: a.id,
     name: a.name,
-    hint: hint ?? [a.city, a.state].filter(Boolean).join(" / ") || null,
+    hint: hint ?? ([a.city, a.state].filter(Boolean).join(" / ") || null),
   });
   const noActivity7Items: DrilldownAgency[] = agencies
     .filter((a: any) => { const d = daysSince(a.last_interaction_date); return d === null || d >= 7; })
