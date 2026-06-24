@@ -265,6 +265,7 @@ export type Database = {
         Row: {
           activity_id: string | null
           agency_id: string
+          category: string
           created_at: string
           file_name: string
           file_size: number | null
@@ -281,6 +282,7 @@ export type Database = {
         Insert: {
           activity_id?: string | null
           agency_id: string
+          category?: string
           created_at?: string
           file_name: string
           file_size?: number | null
@@ -297,6 +299,7 @@ export type Database = {
         Update: {
           activity_id?: string | null
           agency_id?: string
+          category?: string
           created_at?: string
           file_name?: string
           file_size?: number | null
@@ -1133,6 +1136,7 @@ export type Database = {
         Row: {
           c_level_support_needed: boolean
           city: string
+          cnpj: string | null
           consultant_id: string | null
           contact_email: string | null
           contact_phone: string | null
@@ -1164,6 +1168,7 @@ export type Database = {
         Insert: {
           c_level_support_needed?: boolean
           city: string
+          cnpj?: string | null
           consultant_id?: string | null
           contact_email?: string | null
           contact_phone?: string | null
@@ -1195,6 +1200,7 @@ export type Database = {
         Update: {
           c_level_support_needed?: boolean
           city?: string
+          cnpj?: string | null
           consultant_id?: string | null
           contact_email?: string | null
           contact_phone?: string | null

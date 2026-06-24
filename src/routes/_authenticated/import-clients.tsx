@@ -98,7 +98,7 @@ function ImportClientsPage() {
       const v = std[req];
       if (v === undefined || v === null || v === "") errors.push(`${COLUMN_LABELS[req]} faltando`);
     }
-    // Documento: validação PF (CPF, 11) x PJ (CNPJ, 14) — schema "oneOf" da Credpronto.
+    // Documento: PF (CPF 11) x PJ (CNPJ 14).
     const docDigits = onlyDigits(std.documento);
     if (std.documento) {
       if (docDigits.length === 11) {
@@ -109,10 +109,25 @@ function ImportClientsPage() {
         errors.push("Documento deve ser CPF (11) ou CNPJ (14 dígitos)");
       }
     }
-    // Número do imóvel: Credpronto exige numérico.
+    // Número do imóvel: numérico.
     if (std.numero_imovel !== undefined && std.numero_imovel !== "") {
       if (!/^\d+$/.test(String(std.numero_imovel))) {
         errors.push("Número do imóvel deve ser numérico");
+      }
+    }
+    // Regras de tipo / subtipo de imóvel.
+    const tipo = canonicalTipo(std.tipo_imovel);
+    if (std.tipo_imovel && !tipo) {
+      errors.push("Tipo do imóvel deve ser Residencial ou Comercial");
+    }
+    if (tipo) {
+      const sub = canonicalSubtipo(std.subtipo_imovel);
+      if (!std.subtipo_imovel) {
+        // já capturado pelos required (quando aplicável)
+      } else if (tipo === "comercial" && sub !== "Casa") {
+        errors.push("Subtipo de imóvel comercial deve ser Casa");
+      } else if (tipo === "residencial" && !["Casa", "Apartamento", "Chácara"].includes(sub ?? "")) {
+        errors.push("Subtipo residencial deve ser Casa, Apartamento ou Chácara");
       }
     }
     return errors;
@@ -492,11 +507,49 @@ function ImportClientsPage() {
                         </TableCell>
                         {template.columns.map((c) => {
                           const fromCep = !!r._cepDerived[c];
+                          const currentVal = r[c] !== undefined && r[c] !== null ? String(r[c]) : "";
+                          if (c === "tipo_imovel") {
+                            const tipo = canonicalTipo(currentVal);
+                            const invalid = currentVal && !tipo;
+                            return (
+                              <TableCell key={c} className="p-1">
+                                <Select value={tipo ?? ""} onValueChange={(v) => editCell(r._idx, c, v === "__clear" ? "" : v)}>
+                                  <SelectTrigger className={`h-8 text-xs min-w-[140px] ${invalid ? "border-destructive bg-destructive/5" : ""}`}>
+                                    <SelectValue placeholder={invalid ? `${currentVal} (inválido)` : "—"} />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Residencial">Residencial</SelectItem>
+                                    <SelectItem value="Comercial">Comercial</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                            );
+                          }
+                          if (c === "subtipo_imovel") {
+                            const tipoAtual = canonicalTipo(r.tipo_imovel);
+                            const allowed = tipoAtual === "comercial" ? ["Casa"] : ["Casa", "Apartamento", "Chácara"];
+                            const sub = canonicalSubtipo(currentVal);
+                            const invalid = currentVal && (!sub || !allowed.includes(sub));
+                            return (
+                              <TableCell key={c} className="p-1">
+                                <Select value={sub && allowed.includes(sub) ? sub : ""} onValueChange={(v) => editCell(r._idx, c, v)}>
+                                  <SelectTrigger className={`h-8 text-xs min-w-[140px] ${invalid ? "border-destructive bg-destructive/5" : ""}`}>
+                                    <SelectValue placeholder={invalid ? `${currentVal} (inválido)` : "—"} />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {allowed.map((opt) => (
+                                      <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                            );
+                          }
                           return (
                             <TableCell key={c} className="p-1">
                               <div className="relative">
                                 <Input
-                                  value={r[c] !== undefined && r[c] !== null ? String(r[c]) : ""}
+                                  value={currentVal}
                                   onChange={(e) => editCell(r._idx, c, e.target.value)}
                                   className={`h-8 text-xs border-transparent hover:border-border focus:border-primary min-w-[120px] ${
                                     fromCep ? "bg-info/10 border-info/30" : "bg-transparent"
@@ -567,8 +620,37 @@ function normalizeValue(col: ImportColumn, raw: any): string | number {
     }
     case "estado_imovel":
       return String(raw).trim().toUpperCase().slice(0, 2);
+    case "tipo_imovel": {
+      const t = canonicalTipo(raw);
+      return t ? (t === "comercial" ? "Comercial" : "Residencial") : String(raw).trim();
+    }
+    case "subtipo_imovel": {
+      const s = canonicalSubtipo(raw);
+      return s ?? String(raw).trim();
+    }
     default:
       return String(raw).trim();
   }
+}
+
+function stripAccents(s: string) {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+export function canonicalTipo(raw: unknown): "residencial" | "comercial" | null {
+  const v = stripAccents(String(raw ?? "").trim().toLowerCase());
+  if (!v) return null;
+  if (v.startsWith("res")) return "residencial";
+  if (v.startsWith("com")) return "comercial";
+  return null;
+}
+
+export function canonicalSubtipo(raw: unknown): "Casa" | "Apartamento" | "Chácara" | null {
+  const v = stripAccents(String(raw ?? "").trim().toLowerCase());
+  if (!v) return null;
+  if (v.startsWith("casa")) return "Casa";
+  if (v.startsWith("ap") || v.startsWith("apt") || v.startsWith("apartamento") || v === "ap") return "Apartamento";
+  if (v.startsWith("chac") || v.startsWith("chacara")) return "Chácara";
+  return null;
 }
 

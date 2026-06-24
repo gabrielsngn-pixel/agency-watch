@@ -20,6 +20,7 @@ import {
 } from "recharts";
 import { ACTIVITY_TYPE_LABEL, AGENCY_ACTIVITY_TYPES, BR_STATES, NEGOTIATION_STATUSES, STATUS_TONE, daysSince, type AgencyActivityType } from "@/lib/constants";
 import { KanbanApprovalsCard } from "@/components/kanban-approvals-card";
+import { DrilldownStat, type DrilldownAgency } from "@/components/drilldown-stat";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardPage,
@@ -102,14 +103,59 @@ function DashboardPage() {
   const agencyById = useMemo(() => new Map(agencies.map((agency: any) => [agency.id, agency])), [agencies]);
   const todayAgencyIds = new Set(activities.filter((item: any) => new Date(item.activity_date) >= startToday).map((item: any) => item.agency_id));
   const weekAgencyIds = new Set(activities.filter((item: any) => new Date(item.activity_date) >= startWeek).map((item: any) => item.agency_id));
-  const noActivity7 = agencies.filter((agency: any) => { const days = daysSince(agency.last_interaction_date); return days === null || days >= 7; }).length;
-  const noActivity15 = agencies.filter((agency: any) => { const days = daysSince(agency.last_interaction_date); return days === null || days >= 15; }).length;
+
+  const toItem = (a: any, hint?: string | null): DrilldownAgency => ({
+    id: a.id,
+    name: a.name,
+    hint: hint ?? ([a.city, a.state].filter(Boolean).join(" / ") || null),
+  });
+  const noActivity7Items: DrilldownAgency[] = agencies
+    .filter((a: any) => { const d = daysSince(a.last_interaction_date); return d === null || d >= 7; })
+    .map((a: any) => toItem(a, `${daysSince(a.last_interaction_date) ?? "—"} dias sem interação`));
+  const noActivity15Items: DrilldownAgency[] = agencies
+    .filter((a: any) => { const d = daysSince(a.last_interaction_date); return d === null || d >= 15; })
+    .map((a: any) => toItem(a, `${daysSince(a.last_interaction_date) ?? "—"} dias sem interação`));
+  const noActivity7 = noActivity7Items.length;
+  const noActivity15 = noActivity15Items.length;
   const withoutStageChange = activities.filter((item: any) => !item.status_changed).length;
   const stageChanges = activities.filter((item: any) => item.status_changed).length;
   const todayKey = startToday.toISOString().slice(0, 10);
-  const overdue = agencies.filter((agency: any) => agency.next_step_date && agency.next_step_date < todayKey).length;
+  const overdueItems: DrilldownAgency[] = agencies
+    .filter((a: any) => a.next_step_date && a.next_step_date < todayKey)
+    .map((a: any) => toItem(a, `Vencido em ${new Date(`${a.next_step_date}T12:00:00`).toLocaleDateString("pt-BR")}`));
+  const overdue = overdueItems.length;
   const weekEndKey = endWeek.toISOString().slice(0, 10);
-  const nextThisWeek = agencies.filter((agency: any) => agency.next_step_date && agency.next_step_date >= todayKey && agency.next_step_date < weekEndKey).length;
+  const nextThisWeekItems: DrilldownAgency[] = agencies
+    .filter((a: any) => a.next_step_date && a.next_step_date >= todayKey && a.next_step_date < weekEndKey)
+    .map((a: any) => toItem(a, `Próximo passo em ${new Date(`${a.next_step_date}T12:00:00`).toLocaleDateString("pt-BR")}`));
+  const nextThisWeek = nextThisWeekItems.length;
+  const todayItems: DrilldownAgency[] = Array.from(todayAgencyIds)
+    .map((id) => agencyById.get(id as string))
+    .filter(Boolean)
+    .map((a: any) => toItem(a, "Movimentada hoje"));
+  const weekItems: DrilldownAgency[] = Array.from(weekAgencyIds)
+    .map((id) => agencyById.get(id as string))
+    .filter(Boolean)
+    .map((a: any) => toItem(a, "Movimentada na semana"));
+  const stageChangeAgencyIds = new Set(activities.filter((i: any) => i.status_changed).map((i: any) => i.agency_id));
+  const stageChangeItems: DrilldownAgency[] = Array.from(stageChangeAgencyIds)
+    .map((id) => agencyById.get(id as string))
+    .filter(Boolean)
+    .map((a: any) => toItem(a, "Mudança recente de etapa"));
+  const withoutStageChangeAgencyIds = new Set(
+    activities.filter((i: any) => !i.status_changed).map((i: any) => i.agency_id),
+  );
+  const withoutStageChangeItems: DrilldownAgency[] = Array.from(withoutStageChangeAgencyIds)
+    .map((id) => agencyById.get(id as string))
+    .filter(Boolean)
+    .map((a: any) => toItem(a, "Atividades sem troca de etapa"));
+  const clientBaseAgencyIds = new Set(
+    activities.filter((i: any) => i.activity_type === "client_base_received").map((i: any) => i.agency_id),
+  );
+  const clientBasesItems: DrilldownAgency[] = Array.from(clientBaseAgencyIds)
+    .map((id) => agencyById.get(id as string))
+    .filter(Boolean)
+    .map((a: any) => toItem(a, "Base recebida"));
   const clientBases = activities.filter((item: any) => item.activity_type === "client_base_received").length;
   const directors = [...new Set(agencies.map((agency: any) => agency.regional_director).filter(Boolean))].sort();
   const filteredActivities = useMemo(() => activities.filter((item: any) => {
@@ -184,15 +230,15 @@ function DashboardPage() {
           <p className="text-xs text-muted-foreground mt-1">Saúde, movimento e próximas ações da carteira de imobiliárias.</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-          <StatCard label="Atividade hoje" value={todayAgencyIds.size} icon={<Activity className="h-4 w-4" />} hint="imobiliárias movimentadas" />
-          <StatCard label="Atividade na semana" value={weekAgencyIds.size} icon={<CalendarCheck className="h-4 w-4" />} tone="info" hint="imobiliárias movimentadas" />
-          <StatCard label="Sem atividade há 7 dias" value={noActivity7} icon={<CalendarClock className="h-4 w-4" />} tone="warning" hint="pedem acompanhamento" />
-          <StatCard label="Sem atividade há 15 dias" value={noActivity15} icon={<AlertTriangle className="h-4 w-4" />} tone="destructive" hint="risco de carteira" />
-          <StatCard label="Sem mudança de etapa" value={withoutStageChange} icon={<RefreshCw className="h-4 w-4" />} hint="atividades registradas" />
-          <StatCard label="Mudanças no Kanban" value={stageChanges} icon={<TrendingUp className="h-4 w-4" />} tone="success" hint="mudanças de etapa" />
-          <StatCard label="Próximos passos vencidos" value={overdue} icon={<AlertTriangle className="h-4 w-4" />} tone="destructive" hint="ação imediata" />
-          <StatCard label="Próximos passos da semana" value={nextThisWeek} icon={<CalendarClock className="h-4 w-4" />} tone="info" hint="agenda da carteira" />
-          <StatCard label="Bases recebidas" value={clientBases} icon={<FileUp className="h-4 w-4" />} hint="atividades com base" />
+          <DrilldownStat label="Atividade hoje" value={todayAgencyIds.size} icon={<Activity className="h-4 w-4" />} hint="imobiliárias movimentadas" items={todayItems} />
+          <DrilldownStat label="Atividade na semana" value={weekAgencyIds.size} icon={<CalendarCheck className="h-4 w-4" />} tone="info" hint="imobiliárias movimentadas" items={weekItems} />
+          <DrilldownStat label="Sem atividade há 7 dias" value={noActivity7} icon={<CalendarClock className="h-4 w-4" />} tone="warning" hint="pedem acompanhamento" items={noActivity7Items} />
+          <DrilldownStat label="Sem atividade há 15 dias" value={noActivity15} icon={<AlertTriangle className="h-4 w-4" />} tone="destructive" hint="risco de carteira" items={noActivity15Items} />
+          <DrilldownStat label="Sem mudança de etapa" value={withoutStageChange} icon={<RefreshCw className="h-4 w-4" />} hint="atividades registradas" items={withoutStageChangeItems} />
+          <DrilldownStat label="Mudanças no Kanban" value={stageChanges} icon={<TrendingUp className="h-4 w-4" />} tone="success" hint="mudanças de etapa" items={stageChangeItems} />
+          <DrilldownStat label="Próximos passos vencidos" value={overdue} icon={<AlertTriangle className="h-4 w-4" />} tone="destructive" hint="ação imediata" items={overdueItems} />
+          <DrilldownStat label="Próximos passos da semana" value={nextThisWeek} icon={<CalendarClock className="h-4 w-4" />} tone="info" hint="agenda da carteira" items={nextThisWeekItems} />
+          <DrilldownStat label="Bases recebidas" value={clientBases} icon={<FileUp className="h-4 w-4" />} hint="atividades com base" items={clientBasesItems} />
         </div>
 
         {missionAlerts.length > 0 && (

@@ -161,13 +161,17 @@ function AgencyDetailPage() {
             <Tabs defaultValue="activities">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="activities">Atividades ({activities.length})</TabsTrigger>
-                <TabsTrigger value="files">Bases Recebidas ({agencyFiles.length})</TabsTrigger>
+                <TabsTrigger value="files">Arquivos ({agencyFiles.length})</TabsTrigger>
               </TabsList>
               <TabsContent value="activities" className="mt-5">
                 <AgencyActivityTimeline activities={activities} />
               </TabsContent>
               <TabsContent value="files" className="mt-5">
-                <AgencyFilesList files={agencyFiles} />
+                <AgencyFilesList
+                  files={agencyFiles}
+                  agencyId={agencyId}
+                  onUploaded={() => qc.invalidateQueries({ queryKey: ["agency-files", agencyId] })}
+                />
               </TabsContent>
             </Tabs>
           </CardContent>

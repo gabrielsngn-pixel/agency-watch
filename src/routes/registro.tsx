@@ -29,6 +29,15 @@ type StageOption = { stage_key: string; label: string; color: string };
 
 const CONSULTANT_KEY = "registro:consultant_email";
 
+function formatCnpjMask(value: string): string {
+  const d = value.replace(/\D+/g, "").slice(0, 14);
+  return d
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1/$2")
+    .replace(/(\d{4})(\d)/, "$1-$2");
+}
+
 function RegistroPage() {
   const [email, setEmail] = useState("");
   const [consultantName, setConsultantName] = useState<string | null>(null);
@@ -329,7 +338,7 @@ function AttachBaseForm({ email, disabled, consultantName, onGoNewAgency }: { em
 
 function NewAgencyForm({ email, disabled, stages, consultantName }: { email: string; disabled: boolean; stages: StageOption[]; consultantName?: string }) {
   const [form, setForm] = useState({
-    agency_name: "", city: "", state: "",
+    agency_name: "", cnpj: "", city: "", state: "",
     main_contact: "", contact_role: "", contact_phone: "", contact_email: "",
     current_guarantor: "", perceived_potential: "",
     initial_kanban_status: "Pipeline de Prospecção",
@@ -342,13 +351,15 @@ function NewAgencyForm({ email, disabled, stages, consultantName }: { email: str
   const set = (k: keyof typeof form, v: string) => setForm((p) => ({ ...p, [k]: v }));
 
   const reset = () => {
-    setForm({ agency_name: "", city: "", state: "", main_contact: "", contact_role: "", contact_phone: "", contact_email: "", current_guarantor: "", perceived_potential: "", initial_kanban_status: "Pipeline de Prospecção", notes: "" });
+    setForm({ agency_name: "", cnpj: "", city: "", state: "", main_contact: "", contact_role: "", contact_phone: "", contact_email: "", current_guarantor: "", perceived_potential: "", initial_kanban_status: "Pipeline de Prospecção", notes: "" });
     setFile(null); setAttachBase(false); setSuccess(null);
   };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.agency_name.trim() || !form.city.trim() || !form.state) return toast.error("Nome, cidade e UF são obrigatórios.");
+    const cnpjDigits = form.cnpj.replace(/\D+/g, "");
+    if (cnpjDigits && cnpjDigits.length !== 14) return toast.error("CNPJ deve ter 14 dígitos.");
     if (attachBase && !file) return toast.error("Anexe o arquivo da base.");
     setLoading(true);
     try {
@@ -385,9 +396,21 @@ function NewAgencyForm({ email, disabled, stages, consultantName }: { email: str
               </Select>
             </div>
           </div>
-          <div className="space-y-2">
-            <Label>Cidade *</Label>
-            <Input value={form.city} onChange={(e) => set("city", e.target.value)} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Cidade *</Label>
+              <Input value={form.city} onChange={(e) => set("city", e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>CNPJ</Label>
+              <Input
+                value={form.cnpj}
+                onChange={(e) => set("cnpj", formatCnpjMask(e.target.value))}
+                placeholder="00.000.000/0000-00"
+                inputMode="numeric"
+                maxLength={18}
+              />
+            </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-2"><Label>Contato principal</Label><Input value={form.main_contact} onChange={(e) => set("main_contact", e.target.value)} /></div>

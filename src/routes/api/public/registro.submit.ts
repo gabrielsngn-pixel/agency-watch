@@ -11,6 +11,7 @@ const baseSchema = z.object({
   flow: z.enum(["attach_base", "new_agency", "fup", "kanban_move"]),
   agency_id: z.string().uuid().optional(),
   agency_name: z.string().max(200).optional(),
+  cnpj: z.string().max(20).optional(),
   city: z.string().max(120).optional(),
   state: z.string().max(2).optional(),
   main_contact: z.string().max(200).optional(),
@@ -128,6 +129,7 @@ export const Route = createFileRoute("/api/public/registro/submit")({
               .from("real_estate_agencies")
               .insert({
                 name: input.agency_name.trim(),
+                cnpj: input.cnpj?.replace(/\D+/g, "") || null,
                 city: input.city.trim(),
                 state: input.state.trim().toUpperCase(),
                 main_contact: input.main_contact?.trim() || null,
