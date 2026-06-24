@@ -362,6 +362,8 @@ function NewAgencyForm({ email, disabled, stages, consultantName }: { email: str
     if (!form.agency_name.trim() || !form.city.trim() || !form.state) return toast.error("Nome, cidade e UF são obrigatórios.");
     const cnpjDigits = form.cnpj.replace(/\D+/g, "");
     if (cnpjDigits && cnpjDigits.length !== 14) return toast.error("CNPJ deve ter 14 dígitos.");
+    if (!form.perceived_potential.trim()) return toast.error("Informe o potencial de clientes (contratos).");
+    if (!form.deal_temperature) return toast.error("Selecione o termômetro da negociação.");
     if (attachBase && !file) return toast.error("Anexe o arquivo da base.");
     setLoading(true);
     try {
@@ -420,7 +422,7 @@ function NewAgencyForm({ email, disabled, stages, consultantName }: { email: str
             <div className="space-y-2"><Label>Telefone</Label><Input value={form.contact_phone} onChange={(e) => set("contact_phone", e.target.value)} /></div>
             <div className="space-y-2"><Label>E-mail</Label><Input type="email" value={form.contact_email} onChange={(e) => set("contact_email", e.target.value)} /></div>
             <div className="space-y-2"><Label>Garantidor atual</Label><Input value={form.current_guarantor} onChange={(e) => set("current_guarantor", e.target.value)} /></div>
-            <div className="space-y-2"><Label>Potencial de clientes (contratos)</Label><Input type="number" min={0} inputMode="numeric" value={form.perceived_potential} onChange={(e) => set("perceived_potential", e.target.value.replace(/\D+/g, ""))} placeholder="Ex: 120" /></div>
+            <div className="space-y-2"><Label>Potencial de clientes (contratos) *</Label><Input type="number" min={0} inputMode="numeric" value={form.perceived_potential} onChange={(e) => set("perceived_potential", e.target.value.replace(/\D+/g, ""))} placeholder="Ex: 120" /></div>
           </div>
           <div className="space-y-2">
             <Label>Termômetro da negociação *</Label>
