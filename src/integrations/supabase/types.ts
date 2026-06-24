@@ -1146,6 +1146,7 @@ export type Database = {
           created_by: string | null
           current_guarantor: string | null
           current_offer: string | null
+          deal_temperature: string | null
           feedback: string | null
           guarantor_type: Database["public"]["Enums"]["guarantor_type"] | null
           id: string
@@ -1178,6 +1179,7 @@ export type Database = {
           created_by?: string | null
           current_guarantor?: string | null
           current_offer?: string | null
+          deal_temperature?: string | null
           feedback?: string | null
           guarantor_type?: Database["public"]["Enums"]["guarantor_type"] | null
           id?: string
@@ -1210,6 +1212,7 @@ export type Database = {
           created_by?: string | null
           current_guarantor?: string | null
           current_offer?: string | null
+          deal_temperature?: string | null
           feedback?: string | null
           guarantor_type?: Database["public"]["Enums"]["guarantor_type"] | null
           id?: string

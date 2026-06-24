@@ -1,0 +1,1 @@
+ALTER TABLE public.real_estate_agencies ADD COLUMN IF NOT EXISTS deal_temperature text CHECK (deal_temperature IN ('frio','medio','quente','urgente'));
