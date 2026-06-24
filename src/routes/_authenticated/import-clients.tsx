@@ -567,7 +567,13 @@ function ImportClientsPage() {
                     {cepDerivedCount} campos via CEP
                   </Badge>
                 )}
+                {duplicatesRemoved > 0 && (
+                  <Badge variant="outline" className="text-warning border-warning/40">
+                    {duplicatesRemoved} duplicada(s) removida(s)
+                  </Badge>
+                )}
               </div>
+
               <Button onClick={handleDownload} disabled={busy || rows.length === 0 || (linkToAgency === "yes" && !selectedAgencyId)}>
                 {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
                 Gerar XLSX {templateKey === "complete" ? "Completo" : "Simplificado"} ({rows.length})
