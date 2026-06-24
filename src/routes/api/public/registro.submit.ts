@@ -125,6 +125,18 @@ export const Route = createFileRoute("/api/public/registro/submit")({
           if (!input.agency_name?.trim() || !input.city?.trim() || !input.state?.trim()) {
             return Response.json({ ok: false, error: "agency_fields_required" }, { status: 400 });
           }
+          if (!input.perceived_potential?.trim()) {
+            return Response.json({ ok: false, error: "perceived_potential_required" }, { status: 400 });
+          }
+          if (!input.deal_temperature) {
+            return Response.json({ ok: false, error: "deal_temperature_required" }, { status: 400 });
+          }
+          if (input.cnpj?.trim()) {
+            const digits = input.cnpj.replace(/\D+/g, "");
+            if (digits.length !== 14) {
+              return Response.json({ ok: false, error: "invalid_cnpj" }, { status: 400 });
+            }
+          }
           if (!agency) {
             const { data: created, error: createError } = await supabaseAdmin
               .from("real_estate_agencies")
