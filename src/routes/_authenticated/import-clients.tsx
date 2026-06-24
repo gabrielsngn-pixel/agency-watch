@@ -582,8 +582,37 @@ function normalizeValue(col: ImportColumn, raw: any): string | number {
     }
     case "estado_imovel":
       return String(raw).trim().toUpperCase().slice(0, 2);
+    case "tipo_imovel": {
+      const t = canonicalTipo(raw);
+      return t ? (t === "comercial" ? "Comercial" : "Residencial") : String(raw).trim();
+    }
+    case "subtipo_imovel": {
+      const s = canonicalSubtipo(raw);
+      return s ?? String(raw).trim();
+    }
     default:
       return String(raw).trim();
   }
+}
+
+function stripAccents(s: string) {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+export function canonicalTipo(raw: unknown): "residencial" | "comercial" | null {
+  const v = stripAccents(String(raw ?? "").trim().toLowerCase());
+  if (!v) return null;
+  if (v.startsWith("res")) return "residencial";
+  if (v.startsWith("com")) return "comercial";
+  return null;
+}
+
+export function canonicalSubtipo(raw: unknown): "Casa" | "Apartamento" | "Chácara" | null {
+  const v = stripAccents(String(raw ?? "").trim().toLowerCase());
+  if (!v) return null;
+  if (v.startsWith("casa")) return "Casa";
+  if (v.startsWith("ap") || v.startsWith("apt") || v.startsWith("apartamento") || v === "ap") return "Apartamento";
+  if (v.startsWith("chac") || v.startsWith("chacara")) return "Chácara";
+  return null;
 }
 
