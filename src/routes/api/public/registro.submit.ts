@@ -129,6 +129,7 @@ export const Route = createFileRoute("/api/public/registro/submit")({
               .from("real_estate_agencies")
               .insert({
                 name: input.agency_name.trim(),
+                cnpj: input.cnpj?.replace(/\D+/g, "") || null,
                 city: input.city.trim(),
                 state: input.state.trim().toUpperCase(),
                 main_contact: input.main_contact?.trim() || null,
