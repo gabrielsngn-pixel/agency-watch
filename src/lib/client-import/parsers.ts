@@ -94,22 +94,33 @@ function looksLikeHeaderRow(r: PdfRow): boolean {
 }
 
 function rowsToRecords(headers: string[], anchors: number[], dataRows: PdfRow[]): Record<string, string>[] {
+  // Column boundaries = midpoints between consecutive header anchors.
+  // Assign each item to the column whose [boundary_k-1, boundary_k) interval
+  // contains the item's center. Avoids "nearest center" misrouting when a
+  // value (e.g. "R$ 1.500,00") is wider than its header label and its center
+  // drifts toward the next column's anchor.
+  const bounds: number[] = [];
+  for (let k = 0; k < anchors.length - 1; k++) {
+    bounds.push((anchors[k] + anchors[k + 1]) / 2);
+  }
+  const colOf = (xCenter: number): number => {
+    for (let k = 0; k < bounds.length; k++) {
+      if (xCenter < bounds[k]) return k;
+    }
+    return anchors.length - 1;
+  };
+
   const out: Record<string, string>[] = [];
   for (const r of dataRows) {
     if (!r.length) continue;
     const cells: string[] = headers.map(() => "");
     for (const it of r) {
-      const center = (it.x + it.xEnd) / 2;
-      let best = 0;
-      let bestDist = Infinity;
-      for (let k = 0; k < anchors.length; k++) {
-        const d = Math.abs(anchors[k] - center);
-        if (d < bestDist) {
-          bestDist = d;
-          best = k;
-        }
-      }
-      cells[best] = cells[best] ? `${cells[best]} ${it.s.trim()}` : it.s.trim();
+      // Use item's left edge + half its width; for very wide items, anchor on
+      // left edge instead so they stay in their starting column.
+      const w = it.xEnd - it.x;
+      const ref = w > 60 ? it.x + 8 : (it.x + it.xEnd) / 2;
+      const k = colOf(ref);
+      cells[k] = cells[k] ? `${cells[k]} ${it.s.trim()}` : it.s.trim();
     }
     if (cells.every((c) => !c.trim())) continue;
     if (cells.every((c, idx) => c.trim() === headers[idx])) continue;
