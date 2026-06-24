@@ -150,6 +150,21 @@ export const Route = createFileRoute("/api/public/registro/submit")({
             if (createError) return Response.json({ ok: false, error: "agency_create_failed", detail: createError.message }, { status: 500 });
             agency = created;
           }
+          if (agency && input.deal_temperature === "urgente") {
+            await supabaseAdmin.from("mission_control_alerts").insert({
+              alert_type: "urgent_agency_registration",
+              severity: "high",
+              title: `Imobiliária urgente: ${agency.name}`,
+              description: `Cadastro marcado como URGENTE por ${consultant.name} (${input.consultant_email}). Cidade: ${input.city}/${input.state?.toUpperCase()}.${input.notes ? ` Observações: ${input.notes}` : ""}`,
+              metadata: {
+                agency_id: agency.id,
+                agency_name: agency.name,
+                consultant_email: input.consultant_email,
+                source: "public_form",
+              },
+              created_by: consultant.user_id ?? null,
+            });
+          }
         }
 
         if (!agency) {
