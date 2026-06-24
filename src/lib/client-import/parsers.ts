@@ -82,33 +82,89 @@ async function parseDocx(file: File): Promise<ParsedTable> {
 
 async function parsePdf(file: File): Promise<ParsedTable> {
   const pdfjs: any = await import("pdfjs-dist");
-  // Worker via CDN para evitar configuração de worker em build.
   if (pdfjs.GlobalWorkerOptions && !pdfjs.GlobalWorkerOptions.workerSrc) {
     pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
   }
   const buf = await file.arrayBuffer();
   const doc = await pdfjs.getDocument({ data: buf }).promise;
-  const lines: string[] = [];
+
+  // Coleta todos os itens de texto (com x,y) de todas as páginas, agrupando por linha (Y).
+  type Item = { x: number; xEnd: number; s: string };
+  const allRows: Item[][] = [];
+  const Y_TOL = 3;
+
   for (let i = 1; i <= doc.numPages; i++) {
     const page = await doc.getPage(i);
     const content = await page.getTextContent();
-    // Agrupa por linha via coordenada Y aproximada.
-    const byY: Record<string, { x: number; s: string }[]> = {};
+    const byY = new Map<number, Item[]>();
     for (const item of content.items as any[]) {
-      const y = Math.round(item.transform[5]);
+      const s = String(item.str ?? "");
+      if (!s.trim()) continue;
       const x = item.transform[4];
-      (byY[y] = byY[y] ?? []).push({ x, s: item.str });
+      const width = item.width ?? 0;
+      const yRaw = item.transform[5];
+      const y = Math.round(yRaw / Y_TOL) * Y_TOL;
+      const arr = byY.get(y) ?? [];
+      arr.push({ x, xEnd: x + width, s });
+      byY.set(y, arr);
     }
-    Object.keys(byY)
-      .map(Number)
-      .sort((a, b) => b - a)
-      .forEach((y) => {
-        const line = byY[y].sort((a, b) => a.x - b.x).map((p) => p.s).join("\t");
-        if (line.trim()) lines.push(line);
-      });
+    const ys = Array.from(byY.keys()).sort((a, b) => b - a);
+    for (const y of ys) {
+      const row = byY.get(y)!.sort((a, b) => a.x - b.x);
+      allRows.push(row);
+    }
   }
-  return parseDelimitedText(lines.join("\n"), "pdf");
+
+  if (!allRows.length) return { headers: [], rows: [], sourceFormat: "pdf" };
+
+  // Linha de cabeçalho: primeira linha com >=2 itens cujo texto não é majoritariamente numérico.
+  let headerIdx = 0;
+  for (let i = 0; i < Math.min(allRows.length, 10); i++) {
+    const r = allRows[i];
+    if (r.length < 2) continue;
+    const textish = r.filter((it) => /[A-Za-zÀ-ÿ_]/.test(it.s)).length;
+    if (textish >= 2) {
+      headerIdx = i;
+      break;
+    }
+  }
+
+  // Define âncoras de coluna a partir dos centros dos itens de cabeçalho.
+  const headerRow = allRows[headerIdx];
+  const anchors = headerRow.map((it) => (it.x + it.xEnd) / 2);
+  const headers = headerRow.map((it) => it.s.trim());
+
+  // Para cada linha, distribui itens na coluna cuja âncora está mais próxima do centro do item.
+  // Concatena múltiplos itens na mesma coluna com espaço.
+  const rows: Record<string, any>[] = [];
+  for (let i = headerIdx + 1; i < allRows.length; i++) {
+    const r = allRows[i];
+    if (!r.length) continue;
+    const cells: string[] = headers.map(() => "");
+    for (const it of r) {
+      const center = (it.x + it.xEnd) / 2;
+      let best = 0;
+      let bestDist = Infinity;
+      for (let k = 0; k < anchors.length; k++) {
+        const d = Math.abs(anchors[k] - center);
+        if (d < bestDist) {
+          bestDist = d;
+          best = k;
+        }
+      }
+      cells[best] = cells[best] ? `${cells[best]} ${it.s.trim()}` : it.s.trim();
+    }
+    // Ignora linhas totalmente vazias ou que repetem o cabeçalho.
+    if (cells.every((c) => !c.trim())) continue;
+    if (cells.every((c, idx) => c.trim() === headers[idx])) continue;
+    const obj: Record<string, any> = {};
+    headers.forEach((h, j) => (obj[h] = cells[j] ?? ""));
+    rows.push(obj);
+  }
+
+  return { headers, rows, sourceFormat: "pdf" };
 }
+
 
 /** Heurística para PDF/TXT/DOCX-sem-tabela: detecta delimitador automático. */
 function parseDelimitedText(text: string, fmt: ParsedTable["sourceFormat"]): ParsedTable {
