@@ -230,15 +230,15 @@ function DashboardPage() {
           <p className="text-xs text-muted-foreground mt-1">Saúde, movimento e próximas ações da carteira de imobiliárias.</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-          <StatCard label="Atividade hoje" value={todayAgencyIds.size} icon={<Activity className="h-4 w-4" />} hint="imobiliárias movimentadas" />
-          <StatCard label="Atividade na semana" value={weekAgencyIds.size} icon={<CalendarCheck className="h-4 w-4" />} tone="info" hint="imobiliárias movimentadas" />
-          <StatCard label="Sem atividade há 7 dias" value={noActivity7} icon={<CalendarClock className="h-4 w-4" />} tone="warning" hint="pedem acompanhamento" />
-          <StatCard label="Sem atividade há 15 dias" value={noActivity15} icon={<AlertTriangle className="h-4 w-4" />} tone="destructive" hint="risco de carteira" />
-          <StatCard label="Sem mudança de etapa" value={withoutStageChange} icon={<RefreshCw className="h-4 w-4" />} hint="atividades registradas" />
-          <StatCard label="Mudanças no Kanban" value={stageChanges} icon={<TrendingUp className="h-4 w-4" />} tone="success" hint="mudanças de etapa" />
-          <StatCard label="Próximos passos vencidos" value={overdue} icon={<AlertTriangle className="h-4 w-4" />} tone="destructive" hint="ação imediata" />
-          <StatCard label="Próximos passos da semana" value={nextThisWeek} icon={<CalendarClock className="h-4 w-4" />} tone="info" hint="agenda da carteira" />
-          <StatCard label="Bases recebidas" value={clientBases} icon={<FileUp className="h-4 w-4" />} hint="atividades com base" />
+          <DrilldownStat label="Atividade hoje" value={todayAgencyIds.size} icon={<Activity className="h-4 w-4" />} hint="imobiliárias movimentadas" items={todayItems} />
+          <DrilldownStat label="Atividade na semana" value={weekAgencyIds.size} icon={<CalendarCheck className="h-4 w-4" />} tone="info" hint="imobiliárias movimentadas" items={weekItems} />
+          <DrilldownStat label="Sem atividade há 7 dias" value={noActivity7} icon={<CalendarClock className="h-4 w-4" />} tone="warning" hint="pedem acompanhamento" items={noActivity7Items} />
+          <DrilldownStat label="Sem atividade há 15 dias" value={noActivity15} icon={<AlertTriangle className="h-4 w-4" />} tone="destructive" hint="risco de carteira" items={noActivity15Items} />
+          <DrilldownStat label="Sem mudança de etapa" value={withoutStageChange} icon={<RefreshCw className="h-4 w-4" />} hint="atividades registradas" items={withoutStageChangeItems} />
+          <DrilldownStat label="Mudanças no Kanban" value={stageChanges} icon={<TrendingUp className="h-4 w-4" />} tone="success" hint="mudanças de etapa" items={stageChangeItems} />
+          <DrilldownStat label="Próximos passos vencidos" value={overdue} icon={<AlertTriangle className="h-4 w-4" />} tone="destructive" hint="ação imediata" items={overdueItems} />
+          <DrilldownStat label="Próximos passos da semana" value={nextThisWeek} icon={<CalendarClock className="h-4 w-4" />} tone="info" hint="agenda da carteira" items={nextThisWeekItems} />
+          <DrilldownStat label="Bases recebidas" value={clientBases} icon={<FileUp className="h-4 w-4" />} hint="atividades com base" items={clientBasesItems} />
         </div>
 
         {missionAlerts.length > 0 && (
