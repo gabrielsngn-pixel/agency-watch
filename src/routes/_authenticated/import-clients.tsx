@@ -56,7 +56,20 @@ function ImportClientsPage() {
   const [filename, setFilename] = useState("");
   const [busy, setBusy] = useState(false);
   const [cepLookupBusy, setCepLookupBusy] = useState(false);
+  const [linkToAgency, setLinkToAgency] = useState<"no" | "yes">("no");
+  const [selectedAgencyId, setSelectedAgencyId] = useState<string>("");
+  const [agencies, setAgencies] = useState<{ id: string; name: string }[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!allowed) return;
+    supabase
+      .from("real_estate_agencies")
+      .select("id,name")
+      .order("name", { ascending: true })
+      .then(({ data }) => setAgencies((data ?? []) as { id: string; name: string }[]));
+  }, [allowed]);
+
 
   const template = TEMPLATES[templateKey];
 
@@ -301,8 +314,12 @@ function ImportClientsPage() {
       const exportRows: StandardRow[] = validRows.map(({ _errors, _idx, _cepDerived, ...rest }) => rest);
       const blob = buildImportCsv(exportRows, templateKey);
 
-      const ts = new Date().toISOString().replace(/[:.]/g, "-");
+      const linkedAgency = linkToAgency === "yes" && selectedAgencyId
+        ? agencies.find((a) => a.id === selectedAgencyId) ?? null
+        : null;
+
       const safeName = (filename || "import").replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9-_]+/g, "_");
+      const ts = new Date().toISOString().replace(/[:.]/g, "-");
       const path = `${user.id}/${ts}__${templateKey}__${safeName}.csv`;
       const { error: upErr } = await supabase.storage
         .from("client-imports")
@@ -315,7 +332,7 @@ function ImportClientsPage() {
       const { error: histErr } = await supabase.from("client_import_history").insert({
         user_id: user.id,
         user_email: user.email ?? null,
-        agency_name: agencyName || null,
+        agency_name: linkedAgency?.name ?? (agencyName || null),
         original_filename: filename,
         original_format: parsed?.sourceFormat ?? null,
         total_rows: stats.total,
@@ -325,15 +342,47 @@ function ImportClientsPage() {
       });
       if (histErr) throw histErr;
 
+      // Nome do arquivo final: se vinculado a uma imobiliária, "<imobiliaria>_tratada.csv".
+      const downloadName = linkedAgency
+        ? `${linkedAgency.name.replace(/[^a-zA-Z0-9-_]+/g, "_")}_tratada.csv`
+        : `${templateKey === "complete" ? "completo" : "simplificado"}_${safeName}.csv`;
+
+      // Se vinculado: também sobe para o repositório "tratada" da imobiliária.
+      if (linkedAgency) {
+        try {
+          const agencyPath = `${linkedAgency.id}/processed/${crypto.randomUUID()}-${downloadName}`;
+          const { error: agUpErr } = await supabase.storage
+            .from("agency-files")
+            .upload(agencyPath, blob, { contentType: "text/csv;charset=utf-8;" });
+          if (agUpErr) throw agUpErr;
+          const name = String(user.user_metadata?.full_name ?? user.email ?? "Usuário");
+          const { error: agInsErr } = await supabase.from("agency_files").insert({
+            agency_id: linkedAgency.id,
+            uploaded_by: user.id,
+            uploaded_by_name: name,
+            uploaded_by_email: user.email ?? null,
+            file_name: downloadName,
+            file_url: agencyPath,
+            file_type: "text/csv",
+            file_size: blob.size,
+            processing_status: "processed",
+            category: "processed",
+          } as never);
+          if (agInsErr) throw agInsErr;
+        } catch (e: any) {
+          toast.warning(`Arquivo gerado, mas falhou ao registrar na imobiliária: ${e?.message ?? e}`);
+        }
+      }
+
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${templateKey === "complete" ? "completo" : "simplificado"}_${safeName}.csv`;
+      a.download = downloadName;
       a.click();
       URL.revokeObjectURL(url);
 
       toast.success(
-        `Arquivo gerado com ${validRows.length} linha(s) válidas${stats.invalid ? ` (${stats.invalid} ignoradas)` : ""}.`,
+        `Arquivo gerado com ${validRows.length} linha(s) válidas${stats.invalid ? ` (${stats.invalid} ignoradas)` : ""}${linkedAgency ? ` e anexado à carteira de ${linkedAgency.name}.` : "."}`,
       );
     } catch (e: any) {
       toast.error(e?.message ?? "Falha ao gerar arquivo.");
@@ -341,6 +390,7 @@ function ImportClientsPage() {
       setBusy(false);
     }
   };
+
 
 
   const cepDerivedCount = useMemo(
@@ -390,26 +440,58 @@ function ImportClientsPage() {
           <>
             <Card>
               <CardContent className="p-6 space-y-4">
-                <div className="flex items-start justify-between gap-4 flex-wrap">
-                  <div className="space-y-2">
-                    <h3 className="font-display font-semibold text-base">Template de exportação</h3>
-                    <Tabs value={templateKey} onValueChange={(v) => setTemplateKey(v as TemplateKey)}>
+                <div className="space-y-2">
+                  <h3 className="font-display font-semibold text-base">Template de exportação</h3>
+                  <Tabs value={templateKey} onValueChange={(v) => setTemplateKey(v as TemplateKey)}>
+                    <TabsList>
+                      <TabsTrigger value="simplified">{TEMPLATES.simplified.label}</TabsTrigger>
+                      <TabsTrigger value="complete">{TEMPLATES.complete.label}</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                  <p className="text-xs text-muted-foreground">{template.description}</p>
+                </div>
+
+
+                <div className="border-t border-border pt-4 space-y-3">
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-semibold">Associar a uma imobiliária existente?</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Quando associada, o arquivo gerado é nomeado <span className="font-mono">"{"<imobiliária>"}_tratada.csv"</span> e fica salvo no repositório <strong>Tratada</strong> da carteira da imobiliária.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Tabs value={linkToAgency} onValueChange={(v) => setLinkToAgency(v as "no" | "yes")}>
                       <TabsList>
-                        <TabsTrigger value="simplified">{TEMPLATES.simplified.label}</TabsTrigger>
-                        <TabsTrigger value="complete">{TEMPLATES.complete.label}</TabsTrigger>
+                        <TabsTrigger value="no">Não associar</TabsTrigger>
+                        <TabsTrigger value="yes">Sim, associar</TabsTrigger>
                       </TabsList>
                     </Tabs>
-                    <p className="text-xs text-muted-foreground">{template.description}</p>
+                    {linkToAgency === "yes" && (
+                      <Select value={selectedAgencyId} onValueChange={setSelectedAgencyId}>
+                        <SelectTrigger className="w-72">
+                          <SelectValue placeholder="Selecione a imobiliária..." />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-72">
+                          {agencies.map((a) => (
+                            <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                    {linkToAgency === "no" && (
+                      <Input
+                        placeholder="Nome da imobiliária (opcional, p/ histórico)"
+                        value={agencyName}
+                        onChange={(e) => setAgencyName(e.target.value)}
+                        className="w-72"
+                      />
+                    )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      placeholder="Imobiliária (opcional)"
-                      value={agencyName}
-                      onChange={(e) => setAgencyName(e.target.value)}
-                      className="w-56"
-                    />
-                  </div>
+                  {linkToAgency === "yes" && !selectedAgencyId && (
+                    <p className="text-xs text-warning">Selecione uma imobiliária para habilitar a exportação vinculada.</p>
+                  )}
                 </div>
+
               </CardContent>
             </Card>
 
@@ -466,7 +548,7 @@ function ImportClientsPage() {
                   </Badge>
                 )}
               </div>
-              <Button onClick={handleDownload} disabled={busy || rows.length === 0}>
+              <Button onClick={handleDownload} disabled={busy || rows.length === 0 || (linkToAgency === "yes" && !selectedAgencyId)}>
                 {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
                 Gerar XLSX {templateKey === "complete" ? "Completo" : "Simplificado"} ({rows.length})
               </Button>
