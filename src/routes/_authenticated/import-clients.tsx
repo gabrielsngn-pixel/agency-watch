@@ -151,6 +151,8 @@ function ImportClientsPage() {
 
   const rebuildPreview = (p: ParsedTable, m: Record<string, ImportColumn | "">, tplKey: TemplateKey) => {
     const next: PreviewRow[] = [];
+    const seenDocs = new Map<string, number>(); // docDigits -> count
+    let dupCount = 0;
     p.rows.forEach((raw, idx) => {
       // Limpeza: ignorar linhas em que TODAS as células estejam vazias/whitespace.
       const hasAnyValue = Object.values(raw).some(
@@ -170,10 +172,26 @@ function ImportClientsPage() {
         std.subtipo_imovel = "Casa";
       }
 
+      // Dedup por documento (CPF/CNPJ). Mantém a primeira ocorrência.
+      const docDigits = onlyDigits(std.documento);
+      if (docDigits && (docDigits.length === 11 || docDigits.length === 14)) {
+        if (seenDocs.has(docDigits)) {
+          seenDocs.set(docDigits, (seenDocs.get(docDigits) ?? 0) + 1);
+          dupCount++;
+          return; // descarta duplicata
+        }
+        seenDocs.set(docDigits, 1);
+      }
+
       next.push({ ...std, _errors: computeErrors(std, tplKey), _idx: idx, _cepDerived: {} });
     });
     setRows(next);
+    setDuplicatesRemoved(dupCount);
+    if (dupCount > 0) {
+      toast.info(`${dupCount} linha(s) duplicada(s) por CPF/CNPJ foram removidas (mantida a 1ª ocorrência).`);
+    }
   };
+
 
   // Ao trocar de template, recalcula erros (e mantém os dados/mapping existentes).
   useEffect(() => {
