@@ -440,17 +440,17 @@ function ImportClientsPage() {
           <>
             <Card>
               <CardContent className="p-6 space-y-4">
-                <div className="flex items-start justify-between gap-4 flex-wrap">
-                  <div className="space-y-2">
-                    <h3 className="font-display font-semibold text-base">Template de exportação</h3>
-                    <Tabs value={templateKey} onValueChange={(v) => setTemplateKey(v as TemplateKey)}>
-                      <TabsList>
-                        <TabsTrigger value="simplified">{TEMPLATES.simplified.label}</TabsTrigger>
-                        <TabsTrigger value="complete">{TEMPLATES.complete.label}</TabsTrigger>
-                      </TabsList>
-                    </Tabs>
-                    <p className="text-xs text-muted-foreground">{template.description}</p>
+                <div className="space-y-2">
+                  <h3 className="font-display font-semibold text-base">Template de exportação</h3>
+                  <Tabs value={templateKey} onValueChange={(v) => setTemplateKey(v as TemplateKey)}>
+                    <TabsList>
+                      <TabsTrigger value="simplified">{TEMPLATES.simplified.label}</TabsTrigger>
+                      <TabsTrigger value="complete">{TEMPLATES.complete.label}</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                  <p className="text-xs text-muted-foreground">{template.description}</p>
                 </div>
+
 
                 <div className="border-t border-border pt-4 space-y-3">
                   <div className="space-y-1">
