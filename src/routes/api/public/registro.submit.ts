@@ -20,6 +20,7 @@ const baseSchema = z.object({
   contact_email: z.string().email().max(320).optional().or(z.literal("")),
   current_guarantor: z.string().max(200).optional(),
   perceived_potential: z.string().max(100).optional(),
+  deal_temperature: z.enum(["frio", "medio", "quente", "urgente"]).optional(),
   initial_kanban_status: z.enum(NEGOTIATION_STATUSES).optional(),
   activity_type: z.enum(activityKeys).optional(),
   activity_type_detail: z.string().max(500).optional(),
