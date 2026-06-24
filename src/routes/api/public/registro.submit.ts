@@ -11,6 +11,7 @@ const baseSchema = z.object({
   flow: z.enum(["attach_base", "new_agency", "fup", "kanban_move"]),
   agency_id: z.string().uuid().optional(),
   agency_name: z.string().max(200).optional(),
+  cnpj: z.string().max(20).optional(),
   city: z.string().max(120).optional(),
   state: z.string().max(2).optional(),
   main_contact: z.string().max(200).optional(),
