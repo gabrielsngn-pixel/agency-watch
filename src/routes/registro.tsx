@@ -29,6 +29,15 @@ type StageOption = { stage_key: string; label: string; color: string };
 
 const CONSULTANT_KEY = "registro:consultant_email";
 
+function formatCnpjMask(value: string): string {
+  const d = value.replace(/\D+/g, "").slice(0, 14);
+  return d
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1/$2")
+    .replace(/(\d{4})(\d)/, "$1-$2");
+}
+
 function RegistroPage() {
   const [email, setEmail] = useState("");
   const [consultantName, setConsultantName] = useState<string | null>(null);
