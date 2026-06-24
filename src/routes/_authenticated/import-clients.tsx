@@ -314,8 +314,12 @@ function ImportClientsPage() {
       const exportRows: StandardRow[] = validRows.map(({ _errors, _idx, _cepDerived, ...rest }) => rest);
       const blob = buildImportCsv(exportRows, templateKey);
 
-      const ts = new Date().toISOString().replace(/[:.]/g, "-");
+      const linkedAgency = linkToAgency === "yes" && selectedAgencyId
+        ? agencies.find((a) => a.id === selectedAgencyId) ?? null
+        : null;
+
       const safeName = (filename || "import").replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9-_]+/g, "_");
+      const ts = new Date().toISOString().replace(/[:.]/g, "-");
       const path = `${user.id}/${ts}__${templateKey}__${safeName}.csv`;
       const { error: upErr } = await supabase.storage
         .from("client-imports")
@@ -328,7 +332,7 @@ function ImportClientsPage() {
       const { error: histErr } = await supabase.from("client_import_history").insert({
         user_id: user.id,
         user_email: user.email ?? null,
-        agency_name: agencyName || null,
+        agency_name: linkedAgency?.name ?? (agencyName || null),
         original_filename: filename,
         original_format: parsed?.sourceFormat ?? null,
         total_rows: stats.total,
@@ -338,15 +342,47 @@ function ImportClientsPage() {
       });
       if (histErr) throw histErr;
 
+      // Nome do arquivo final: se vinculado a uma imobiliária, "<imobiliaria>_tratada.csv".
+      const downloadName = linkedAgency
+        ? `${linkedAgency.name.replace(/[^a-zA-Z0-9-_]+/g, "_")}_tratada.csv`
+        : `${templateKey === "complete" ? "completo" : "simplificado"}_${safeName}.csv`;
+
+      // Se vinculado: também sobe para o repositório "tratada" da imobiliária.
+      if (linkedAgency) {
+        try {
+          const agencyPath = `${linkedAgency.id}/processed/${crypto.randomUUID()}-${downloadName}`;
+          const { error: agUpErr } = await supabase.storage
+            .from("agency-files")
+            .upload(agencyPath, blob, { contentType: "text/csv;charset=utf-8;" });
+          if (agUpErr) throw agUpErr;
+          const name = String(user.user_metadata?.full_name ?? user.email ?? "Usuário");
+          const { error: agInsErr } = await supabase.from("agency_files").insert({
+            agency_id: linkedAgency.id,
+            uploaded_by: user.id,
+            uploaded_by_name: name,
+            uploaded_by_email: user.email ?? null,
+            file_name: downloadName,
+            file_url: agencyPath,
+            file_type: "text/csv",
+            file_size: blob.size,
+            processing_status: "processed",
+            category: "processed",
+          } as never);
+          if (agInsErr) throw agInsErr;
+        } catch (e: any) {
+          toast.warning(`Arquivo gerado, mas falhou ao registrar na imobiliária: ${e?.message ?? e}`);
+        }
+      }
+
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${templateKey === "complete" ? "completo" : "simplificado"}_${safeName}.csv`;
+      a.download = downloadName;
       a.click();
       URL.revokeObjectURL(url);
 
       toast.success(
-        `Arquivo gerado com ${validRows.length} linha(s) válidas${stats.invalid ? ` (${stats.invalid} ignoradas)` : ""}.`,
+        `Arquivo gerado com ${validRows.length} linha(s) válidas${stats.invalid ? ` (${stats.invalid} ignoradas)` : ""}${linkedAgency ? ` e anexado à carteira de ${linkedAgency.name}.` : "."}`,
       );
     } catch (e: any) {
       toast.error(e?.message ?? "Falha ao gerar arquivo.");
@@ -354,6 +390,7 @@ function ImportClientsPage() {
       setBusy(false);
     }
   };
+
 
 
   const cepDerivedCount = useMemo(
