@@ -507,11 +507,49 @@ function ImportClientsPage() {
                         </TableCell>
                         {template.columns.map((c) => {
                           const fromCep = !!r._cepDerived[c];
+                          const currentVal = r[c] !== undefined && r[c] !== null ? String(r[c]) : "";
+                          if (c === "tipo_imovel") {
+                            const tipo = canonicalTipo(currentVal);
+                            const invalid = currentVal && !tipo;
+                            return (
+                              <TableCell key={c} className="p-1">
+                                <Select value={tipo ?? ""} onValueChange={(v) => editCell(r._idx, c, v === "__clear" ? "" : v)}>
+                                  <SelectTrigger className={`h-8 text-xs min-w-[140px] ${invalid ? "border-destructive bg-destructive/5" : ""}`}>
+                                    <SelectValue placeholder={invalid ? `${currentVal} (inválido)` : "—"} />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Residencial">Residencial</SelectItem>
+                                    <SelectItem value="Comercial">Comercial</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                            );
+                          }
+                          if (c === "subtipo_imovel") {
+                            const tipoAtual = canonicalTipo(r.tipo_imovel);
+                            const allowed = tipoAtual === "comercial" ? ["Casa"] : ["Casa", "Apartamento", "Chácara"];
+                            const sub = canonicalSubtipo(currentVal);
+                            const invalid = currentVal && (!sub || !allowed.includes(sub));
+                            return (
+                              <TableCell key={c} className="p-1">
+                                <Select value={sub && allowed.includes(sub) ? sub : ""} onValueChange={(v) => editCell(r._idx, c, v)}>
+                                  <SelectTrigger className={`h-8 text-xs min-w-[140px] ${invalid ? "border-destructive bg-destructive/5" : ""}`}>
+                                    <SelectValue placeholder={invalid ? `${currentVal} (inválido)` : "—"} />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {allowed.map((opt) => (
+                                      <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                            );
+                          }
                           return (
                             <TableCell key={c} className="p-1">
                               <div className="relative">
                                 <Input
-                                  value={r[c] !== undefined && r[c] !== null ? String(r[c]) : ""}
+                                  value={currentVal}
                                   onChange={(e) => editCell(r._idx, c, e.target.value)}
                                   className={`h-8 text-xs border-transparent hover:border-border focus:border-primary min-w-[120px] ${
                                     fromCep ? "bg-info/10 border-info/30" : "bg-transparent"
