@@ -139,6 +139,7 @@ export const Route = createFileRoute("/api/public/registro/submit")({
                 contact_email: input.contact_email?.trim() || null,
                 current_guarantor: input.current_guarantor?.trim() || null,
                 perceived_potential: input.perceived_potential?.trim() || null,
+                deal_temperature: input.deal_temperature ?? null,
                 negotiation_status: input.initial_kanban_status ?? undefined,
                 consultant_id: consultant.id,
                 created_by: consultant.user_id ?? null,
