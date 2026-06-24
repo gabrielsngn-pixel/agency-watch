@@ -103,14 +103,59 @@ function DashboardPage() {
   const agencyById = useMemo(() => new Map(agencies.map((agency: any) => [agency.id, agency])), [agencies]);
   const todayAgencyIds = new Set(activities.filter((item: any) => new Date(item.activity_date) >= startToday).map((item: any) => item.agency_id));
   const weekAgencyIds = new Set(activities.filter((item: any) => new Date(item.activity_date) >= startWeek).map((item: any) => item.agency_id));
-  const noActivity7 = agencies.filter((agency: any) => { const days = daysSince(agency.last_interaction_date); return days === null || days >= 7; }).length;
-  const noActivity15 = agencies.filter((agency: any) => { const days = daysSince(agency.last_interaction_date); return days === null || days >= 15; }).length;
+
+  const toItem = (a: any, hint?: string | null): DrilldownAgency => ({
+    id: a.id,
+    name: a.name,
+    hint: hint ?? [a.city, a.state].filter(Boolean).join(" / ") || null,
+  });
+  const noActivity7Items: DrilldownAgency[] = agencies
+    .filter((a: any) => { const d = daysSince(a.last_interaction_date); return d === null || d >= 7; })
+    .map((a: any) => toItem(a, `${daysSince(a.last_interaction_date) ?? "—"} dias sem interação`));
+  const noActivity15Items: DrilldownAgency[] = agencies
+    .filter((a: any) => { const d = daysSince(a.last_interaction_date); return d === null || d >= 15; })
+    .map((a: any) => toItem(a, `${daysSince(a.last_interaction_date) ?? "—"} dias sem interação`));
+  const noActivity7 = noActivity7Items.length;
+  const noActivity15 = noActivity15Items.length;
   const withoutStageChange = activities.filter((item: any) => !item.status_changed).length;
   const stageChanges = activities.filter((item: any) => item.status_changed).length;
   const todayKey = startToday.toISOString().slice(0, 10);
-  const overdue = agencies.filter((agency: any) => agency.next_step_date && agency.next_step_date < todayKey).length;
+  const overdueItems: DrilldownAgency[] = agencies
+    .filter((a: any) => a.next_step_date && a.next_step_date < todayKey)
+    .map((a: any) => toItem(a, `Vencido em ${new Date(`${a.next_step_date}T12:00:00`).toLocaleDateString("pt-BR")}`));
+  const overdue = overdueItems.length;
   const weekEndKey = endWeek.toISOString().slice(0, 10);
-  const nextThisWeek = agencies.filter((agency: any) => agency.next_step_date && agency.next_step_date >= todayKey && agency.next_step_date < weekEndKey).length;
+  const nextThisWeekItems: DrilldownAgency[] = agencies
+    .filter((a: any) => a.next_step_date && a.next_step_date >= todayKey && a.next_step_date < weekEndKey)
+    .map((a: any) => toItem(a, `Próximo passo em ${new Date(`${a.next_step_date}T12:00:00`).toLocaleDateString("pt-BR")}`));
+  const nextThisWeek = nextThisWeekItems.length;
+  const todayItems: DrilldownAgency[] = Array.from(todayAgencyIds)
+    .map((id) => agencyById.get(id as string))
+    .filter(Boolean)
+    .map((a: any) => toItem(a, "Movimentada hoje"));
+  const weekItems: DrilldownAgency[] = Array.from(weekAgencyIds)
+    .map((id) => agencyById.get(id as string))
+    .filter(Boolean)
+    .map((a: any) => toItem(a, "Movimentada na semana"));
+  const stageChangeAgencyIds = new Set(activities.filter((i: any) => i.status_changed).map((i: any) => i.agency_id));
+  const stageChangeItems: DrilldownAgency[] = Array.from(stageChangeAgencyIds)
+    .map((id) => agencyById.get(id as string))
+    .filter(Boolean)
+    .map((a: any) => toItem(a, "Mudança recente de etapa"));
+  const withoutStageChangeAgencyIds = new Set(
+    activities.filter((i: any) => !i.status_changed).map((i: any) => i.agency_id),
+  );
+  const withoutStageChangeItems: DrilldownAgency[] = Array.from(withoutStageChangeAgencyIds)
+    .map((id) => agencyById.get(id as string))
+    .filter(Boolean)
+    .map((a: any) => toItem(a, "Atividades sem troca de etapa"));
+  const clientBaseAgencyIds = new Set(
+    activities.filter((i: any) => i.activity_type === "client_base_received").map((i: any) => i.agency_id),
+  );
+  const clientBasesItems: DrilldownAgency[] = Array.from(clientBaseAgencyIds)
+    .map((id) => agencyById.get(id as string))
+    .filter(Boolean)
+    .map((a: any) => toItem(a, "Base recebida"));
   const clientBases = activities.filter((item: any) => item.activity_type === "client_base_received").length;
   const directors = [...new Set(agencies.map((agency: any) => agency.regional_director).filter(Boolean))].sort();
   const filteredActivities = useMemo(() => activities.filter((item: any) => {
