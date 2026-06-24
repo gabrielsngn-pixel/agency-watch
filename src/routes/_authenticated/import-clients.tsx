@@ -450,16 +450,48 @@ function ImportClientsPage() {
                       </TabsList>
                     </Tabs>
                     <p className="text-xs text-muted-foreground">{template.description}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      placeholder="Imobiliária (opcional)"
-                      value={agencyName}
-                      onChange={(e) => setAgencyName(e.target.value)}
-                      className="w-56"
-                    />
-                  </div>
                 </div>
+
+                <div className="border-t border-border pt-4 space-y-3">
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-semibold">Associar a uma imobiliária existente?</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Quando associada, o arquivo gerado é nomeado <span className="font-mono">"{"<imobiliária>"}_tratada.csv"</span> e fica salvo no repositório <strong>Tratada</strong> da carteira da imobiliária.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Tabs value={linkToAgency} onValueChange={(v) => setLinkToAgency(v as "no" | "yes")}>
+                      <TabsList>
+                        <TabsTrigger value="no">Não associar</TabsTrigger>
+                        <TabsTrigger value="yes">Sim, associar</TabsTrigger>
+                      </TabsList>
+                    </Tabs>
+                    {linkToAgency === "yes" && (
+                      <Select value={selectedAgencyId} onValueChange={setSelectedAgencyId}>
+                        <SelectTrigger className="w-72">
+                          <SelectValue placeholder="Selecione a imobiliária..." />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-72">
+                          {agencies.map((a) => (
+                            <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                    {linkToAgency === "no" && (
+                      <Input
+                        placeholder="Nome da imobiliária (opcional, p/ histórico)"
+                        value={agencyName}
+                        onChange={(e) => setAgencyName(e.target.value)}
+                        className="w-72"
+                      />
+                    )}
+                  </div>
+                  {linkToAgency === "yes" && !selectedAgencyId && (
+                    <p className="text-xs text-warning">Selecione uma imobiliária para habilitar a exportação vinculada.</p>
+                  )}
+                </div>
+
               </CardContent>
             </Card>
 
