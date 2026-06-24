@@ -130,7 +130,14 @@ export function formatCEP(raw: unknown): string {
 export function parseCurrency(raw: unknown): number | null {
   if (raw === null || raw === undefined || raw === "") return null;
   if (typeof raw === "number") return isFinite(raw) ? raw : null;
-  const s = String(raw).trim().replace(/[R$\s]/g, "");
+  const s = String(raw)
+    .trim()
+    // PDFs tabulares às vezes trazem bordas/traços junto do texto: "-R$ 7.000,00-".
+    // Mantém só dígitos e separadores numéricos para não perder o valor importado.
+    .replace(/[R$\s]/g, "")
+    .replace(/(?!^)-/g, "")
+    .replace(/^-+(?=\D*\d)/, "")
+    .replace(/[^0-9.,-]/g, "");
   if (!s) return null;
   // Se tem vírgula E ponto → ponto é separador de milhar, vírgula decimal (pt-BR)
   const hasDot = s.includes(".");
