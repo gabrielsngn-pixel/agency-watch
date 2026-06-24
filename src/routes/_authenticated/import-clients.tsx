@@ -513,7 +513,7 @@ function ImportClientsPage() {
                             const invalid = currentVal && !tipo;
                             return (
                               <TableCell key={c} className="p-1">
-                                <Select value={tipo ?? ""} onValueChange={(v) => editCell(r._idx, c, v === "__clear" ? "" : v)}>
+                                <Select value={tipo === "comercial" ? "Comercial" : tipo === "residencial" ? "Residencial" : ""} onValueChange={(v) => editCell(r._idx, c, v === "__clear" ? "" : v)}>
                                   <SelectTrigger className={`h-8 text-xs min-w-[140px] ${invalid ? "border-destructive bg-destructive/5" : ""}`}>
                                     <SelectValue placeholder={invalid ? `${currentVal} (inválido)` : "—"} />
                                   </SelectTrigger>
