@@ -80,65 +80,22 @@ async function parseDocx(file: File): Promise<ParsedTable> {
   return parseDelimitedText(text, "docx");
 }
 
-async function parsePdf(file: File): Promise<ParsedTable> {
-  const pdfjs: any = await import("pdfjs-dist");
-  if (pdfjs.GlobalWorkerOptions && !pdfjs.GlobalWorkerOptions.workerSrc) {
-    pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
-  }
-  const buf = await file.arrayBuffer();
-  const doc = await pdfjs.getDocument({ data: buf }).promise;
+type PdfItem = { x: number; xEnd: number; s: string };
+type PdfRow = PdfItem[];
+type PdfStripe = { headers: string[]; anchors: number[]; dataRows: PdfRow[] };
 
-  // Coleta todos os itens de texto (com x,y) de todas as páginas, agrupando por linha (Y).
-  type Item = { x: number; xEnd: number; s: string };
-  const allRows: Item[][] = [];
-  const Y_TOL = 3;
+/** Heurística: linha "parece" cabeçalho se a maioria dos itens é texto (sem dígitos/símbolos). */
+function looksLikeHeaderRow(r: PdfRow): boolean {
+  if (r.length < 2) return false;
+  const textish = r.filter(
+    (it) => /[A-Za-zÀ-ÿ_]/.test(it.s) && !/\d/.test(it.s) && !/[@.\-/]/.test(it.s),
+  ).length;
+  return textish >= Math.max(2, Math.ceil(r.length * 0.6));
+}
 
-  for (let i = 1; i <= doc.numPages; i++) {
-    const page = await doc.getPage(i);
-    const content = await page.getTextContent();
-    const byY = new Map<number, Item[]>();
-    for (const item of content.items as any[]) {
-      const s = String(item.str ?? "");
-      if (!s.trim()) continue;
-      const x = item.transform[4];
-      const width = item.width ?? 0;
-      const yRaw = item.transform[5];
-      const y = Math.round(yRaw / Y_TOL) * Y_TOL;
-      const arr = byY.get(y) ?? [];
-      arr.push({ x, xEnd: x + width, s });
-      byY.set(y, arr);
-    }
-    const ys = Array.from(byY.keys()).sort((a, b) => b - a);
-    for (const y of ys) {
-      const row = byY.get(y)!.sort((a, b) => a.x - b.x);
-      allRows.push(row);
-    }
-  }
-
-  if (!allRows.length) return { headers: [], rows: [], sourceFormat: "pdf" };
-
-  // Linha de cabeçalho: primeira linha com >=2 itens cujo texto não é majoritariamente numérico.
-  let headerIdx = 0;
-  for (let i = 0; i < Math.min(allRows.length, 10); i++) {
-    const r = allRows[i];
-    if (r.length < 2) continue;
-    const textish = r.filter((it) => /[A-Za-zÀ-ÿ_]/.test(it.s)).length;
-    if (textish >= 2) {
-      headerIdx = i;
-      break;
-    }
-  }
-
-  // Define âncoras de coluna a partir dos centros dos itens de cabeçalho.
-  const headerRow = allRows[headerIdx];
-  const anchors = headerRow.map((it) => (it.x + it.xEnd) / 2);
-  const headers = headerRow.map((it) => it.s.trim());
-
-  // Para cada linha, distribui itens na coluna cuja âncora está mais próxima do centro do item.
-  // Concatena múltiplos itens na mesma coluna com espaço.
-  const rows: Record<string, any>[] = [];
-  for (let i = headerIdx + 1; i < allRows.length; i++) {
-    const r = allRows[i];
+function rowsToRecords(headers: string[], anchors: number[], dataRows: PdfRow[]): Record<string, string>[] {
+  const out: Record<string, string>[] = [];
+  for (const r of dataRows) {
     if (!r.length) continue;
     const cells: string[] = headers.map(() => "");
     for (const it of r) {
@@ -154,12 +111,100 @@ async function parsePdf(file: File): Promise<ParsedTable> {
       }
       cells[best] = cells[best] ? `${cells[best]} ${it.s.trim()}` : it.s.trim();
     }
-    // Ignora linhas totalmente vazias ou que repetem o cabeçalho.
     if (cells.every((c) => !c.trim())) continue;
     if (cells.every((c, idx) => c.trim() === headers[idx])) continue;
-    const obj: Record<string, any> = {};
+    const obj: Record<string, string> = {};
     headers.forEach((h, j) => (obj[h] = cells[j] ?? ""));
-    rows.push(obj);
+    out.push(obj);
+  }
+  return out;
+}
+
+async function parsePdf(file: File): Promise<ParsedTable> {
+  const pdfjs: any = await import("pdfjs-dist");
+  if (pdfjs.GlobalWorkerOptions && !pdfjs.GlobalWorkerOptions.workerSrc) {
+    pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+  }
+  const buf = await file.arrayBuffer();
+  const doc = await pdfjs.getDocument({ data: buf }).promise;
+
+  const Y_TOL = 3;
+
+  // Coleta páginas como listas de linhas (cada linha = itens ordenados por X).
+  const pages: PdfRow[][] = [];
+  for (let i = 1; i <= doc.numPages; i++) {
+    const page = await doc.getPage(i);
+    const content = await page.getTextContent();
+    const byY = new Map<number, PdfItem[]>();
+    for (const item of content.items as any[]) {
+      const s = String(item.str ?? "");
+      if (!s.trim()) continue;
+      const x = item.transform[4];
+      const width = item.width ?? 0;
+      const y = Math.round(item.transform[5] / Y_TOL) * Y_TOL;
+      const arr = byY.get(y) ?? [];
+      arr.push({ x, xEnd: x + width, s });
+      byY.set(y, arr);
+    }
+    const ys = Array.from(byY.keys()).sort((a, b) => b - a); // top-to-bottom
+    pages.push(ys.map((y) => byY.get(y)!.sort((a, b) => a.x - b.x)));
+  }
+
+  if (!pages.length) return { headers: [], rows: [], sourceFormat: "pdf" };
+
+  // Agrupa páginas em "stripes": cada stripe começa numa página cujo topo é cabeçalho.
+  // Páginas seguintes sem cabeçalho são continuação vertical da mesma stripe.
+  const stripes: PdfStripe[] = [];
+  for (const pageRows of pages) {
+    if (!pageRows.length) continue;
+    const first = pageRows[0];
+    if (looksLikeHeaderRow(first)) {
+      const headers = first.map((it) => it.s.trim());
+      const anchors = first.map((it) => (it.x + it.xEnd) / 2);
+      stripes.push({ headers, anchors, dataRows: pageRows.slice(1) });
+    } else if (stripes.length) {
+      // continuação da última stripe
+      stripes[stripes.length - 1].dataRows.push(...pageRows);
+    } else {
+      // sem cabeçalho ainda visto: trata primeira linha como cabeçalho fallback
+      const headers = first.map((it) => it.s.trim());
+      const anchors = first.map((it) => (it.x + it.xEnd) / 2);
+      stripes.push({ headers, anchors, dataRows: pageRows.slice(1) });
+    }
+  }
+
+  // Converte cada stripe em registros.
+  const stripeRecords = stripes.map((s) => ({
+    headers: s.headers,
+    rows: rowsToRecords(s.headers, s.anchors, s.dataRows),
+  }));
+
+  // Cabeçalhos combinados (deduplicados, mantendo ordem).
+  const seen = new Set<string>();
+  const headers: string[] = [];
+  for (const s of stripeRecords) {
+    for (const h of s.headers) {
+      if (h && !seen.has(h)) {
+        seen.add(h);
+        headers.push(h);
+      }
+    }
+  }
+
+  // Mescla horizontalmente: linha i de cada stripe corresponde ao mesmo registro.
+  const maxLen = stripeRecords.reduce((m, s) => Math.max(m, s.rows.length), 0);
+  const rows: Record<string, string>[] = [];
+  for (let i = 0; i < maxLen; i++) {
+    const merged: Record<string, string> = {};
+    headers.forEach((h) => (merged[h] = ""));
+    for (const s of stripeRecords) {
+      const r = s.rows[i];
+      if (!r) continue;
+      for (const h of s.headers) {
+        if (r[h] && !merged[h]) merged[h] = r[h];
+      }
+    }
+    if (Object.values(merged).some((v) => String(v).trim() !== "")) rows.push(merged);
   }
 
   return { headers, rows, sourceFormat: "pdf" };
