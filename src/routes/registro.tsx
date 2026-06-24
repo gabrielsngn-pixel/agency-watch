@@ -329,7 +329,7 @@ function AttachBaseForm({ email, disabled, consultantName, onGoNewAgency }: { em
 
 function NewAgencyForm({ email, disabled, stages, consultantName }: { email: string; disabled: boolean; stages: StageOption[]; consultantName?: string }) {
   const [form, setForm] = useState({
-    agency_name: "", city: "", state: "",
+    agency_name: "", cnpj: "", city: "", state: "",
     main_contact: "", contact_role: "", contact_phone: "", contact_email: "",
     current_guarantor: "", perceived_potential: "",
     initial_kanban_status: "Pipeline de Prospecção",
@@ -342,7 +342,7 @@ function NewAgencyForm({ email, disabled, stages, consultantName }: { email: str
   const set = (k: keyof typeof form, v: string) => setForm((p) => ({ ...p, [k]: v }));
 
   const reset = () => {
-    setForm({ agency_name: "", city: "", state: "", main_contact: "", contact_role: "", contact_phone: "", contact_email: "", current_guarantor: "", perceived_potential: "", initial_kanban_status: "Pipeline de Prospecção", notes: "" });
+    setForm({ agency_name: "", cnpj: "", city: "", state: "", main_contact: "", contact_role: "", contact_phone: "", contact_email: "", current_guarantor: "", perceived_potential: "", initial_kanban_status: "Pipeline de Prospecção", notes: "" });
     setFile(null); setAttachBase(false); setSuccess(null);
   };
 
