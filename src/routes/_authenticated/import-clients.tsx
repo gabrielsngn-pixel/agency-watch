@@ -56,7 +56,20 @@ function ImportClientsPage() {
   const [filename, setFilename] = useState("");
   const [busy, setBusy] = useState(false);
   const [cepLookupBusy, setCepLookupBusy] = useState(false);
+  const [linkToAgency, setLinkToAgency] = useState<"no" | "yes">("no");
+  const [selectedAgencyId, setSelectedAgencyId] = useState<string>("");
+  const [agencies, setAgencies] = useState<{ id: string; name: string }[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!allowed) return;
+    supabase
+      .from("real_estate_agencies")
+      .select("id,name")
+      .order("name", { ascending: true })
+      .then(({ data }) => setAgencies((data ?? []) as { id: string; name: string }[]));
+  }, [allowed]);
+
 
   const template = TEMPLATES[templateKey];
 
