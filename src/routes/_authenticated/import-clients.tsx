@@ -52,6 +52,7 @@ function ImportClientsPage() {
   const [parsed, setParsed] = useState<ParsedTable | null>(null);
   const [mapping, setMapping] = useState<Record<string, ImportColumn | "">>({});
   const [rows, setRows] = useState<PreviewRow[]>([]);
+  const [duplicatesRemoved, setDuplicatesRemoved] = useState(0);
   const [agencyName, setAgencyName] = useState("");
   const [filename, setFilename] = useState("");
   const [busy, setBusy] = useState(false);
@@ -60,6 +61,7 @@ function ImportClientsPage() {
   const [selectedAgencyId, setSelectedAgencyId] = useState<string>("");
   const [agencies, setAgencies] = useState<{ id: string; name: string }[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+
 
   useEffect(() => {
     if (!allowed) return;
@@ -149,6 +151,8 @@ function ImportClientsPage() {
 
   const rebuildPreview = (p: ParsedTable, m: Record<string, ImportColumn | "">, tplKey: TemplateKey) => {
     const next: PreviewRow[] = [];
+    const seenDocs = new Map<string, number>(); // docDigits -> count
+    let dupCount = 0;
     p.rows.forEach((raw, idx) => {
       // Limpeza: ignorar linhas em que TODAS as células estejam vazias/whitespace.
       const hasAnyValue = Object.values(raw).some(
@@ -168,10 +172,26 @@ function ImportClientsPage() {
         std.subtipo_imovel = "Casa";
       }
 
+      // Dedup por documento (CPF/CNPJ). Mantém a primeira ocorrência.
+      const docDigits = onlyDigits(std.documento);
+      if (docDigits && (docDigits.length === 11 || docDigits.length === 14)) {
+        if (seenDocs.has(docDigits)) {
+          seenDocs.set(docDigits, (seenDocs.get(docDigits) ?? 0) + 1);
+          dupCount++;
+          return; // descarta duplicata
+        }
+        seenDocs.set(docDigits, 1);
+      }
+
       next.push({ ...std, _errors: computeErrors(std, tplKey), _idx: idx, _cepDerived: {} });
     });
     setRows(next);
+    setDuplicatesRemoved(dupCount);
+    if (dupCount > 0) {
+      toast.info(`${dupCount} linha(s) duplicada(s) por CPF/CNPJ foram removidas (mantida a 1ª ocorrência).`);
+    }
   };
+
 
   // Ao trocar de template, recalcula erros (e mantém os dados/mapping existentes).
   useEffect(() => {
@@ -547,7 +567,13 @@ function ImportClientsPage() {
                     {cepDerivedCount} campos via CEP
                   </Badge>
                 )}
+                {duplicatesRemoved > 0 && (
+                  <Badge variant="outline" className="text-warning border-warning/40">
+                    {duplicatesRemoved} duplicada(s) removida(s)
+                  </Badge>
+                )}
               </div>
+
               <Button onClick={handleDownload} disabled={busy || rows.length === 0 || (linkToAgency === "yes" && !selectedAgencyId)}>
                 {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
                 Gerar XLSX {templateKey === "complete" ? "Completo" : "Simplificado"} ({rows.length})
