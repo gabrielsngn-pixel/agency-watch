@@ -17,7 +17,6 @@ import { parseFile, type ParsedTable } from "@/lib/client-import/parsers";
 import {
   formatCEP,
   formatDateBR,
-  formatDocumento,
   formatTelefone,
   isValidDocumento,
   mapHeaders,
