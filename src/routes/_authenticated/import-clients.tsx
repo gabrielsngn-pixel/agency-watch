@@ -702,7 +702,8 @@ function normalizeValue(col: ImportColumn, raw: any): string | number {
   if (raw === null || raw === undefined) return "";
   switch (col) {
     case "documento":
-      return formatDocumento(raw);
+      // Credpronto espera somente dígitos (11 = CPF, 14 = CNPJ) sem formatação.
+      return onlyDigits(raw);
     case "telefone_inquilino":
       return formatTelefone(raw);
     case "cep":
