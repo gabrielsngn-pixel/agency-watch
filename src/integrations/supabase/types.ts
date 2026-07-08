@@ -1474,6 +1474,7 @@ export type Database = {
         Returns: boolean
       }
       delete_kanban_stage: { Args: { p_id: string }; Returns: boolean }
+      email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
@@ -1553,6 +1554,8 @@ export type Database = {
         | "Em precificação"
         | "Em negociação"
         | "Convertida"
+        | "Base Recebida"
+        | "Aguardando Ativação"
       update_source: "web" | "whatsapp" | "import"
     }
     CompositeTypes: {
@@ -1722,6 +1725,8 @@ export const Constants = {
         "Em precificação",
         "Em negociação",
         "Convertida",
+        "Base Recebida",
+        "Aguardando Ativação",
       ],
       update_source: ["web", "whatsapp", "import"],
     },
